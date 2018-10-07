@@ -2,16 +2,28 @@
   "name": "@rlay/utils",
   "version": "0.0.1",
   "description": "Small utility libraries/CLI tools for Rlay",
-  "main": "index.js",
-  "scripts": {
-    "build": "cross-env NODE_ENV=production rollup -c"
+  "keywords": [
+    "rlay",
+    "utils",
+    "tools",
+    "cli",
+    "web3",
+    "ethereum"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rlay-project/rlay-utils.git"
   },
+  "homepage": "https://github.com/rlay-project/rlay-utils",
   "bin": {
     "rlay-seed": "./lib/bin/seed_from_file.js",
     "rlay-sync-redis-search": "./lib/bin/redis-sync-search.js"
   },
   "author": "Maximilian Goisser <max@rlay.com>",
   "license": "MIT OR Apache-2.0",
+  "scripts": {
+    "build": "cross-env NODE_ENV=production rollup -c"
+  },
   "dependencies": {
     "@babel/runtime": "^7.0.1",
     "@rlay/web3-rlay": "0.1.7",

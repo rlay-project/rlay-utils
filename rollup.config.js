@@ -59,6 +59,10 @@ const config = [
   buildConfig(
     "./src/commands/dump_ontology_to_file.js",
     "./lib/bin/dump_ontology_to_file.js"
+  ),
+  buildConfig(
+    "./src/commands/redis-sync-search.js",
+    "./lib/bin/redis-sync-search.js"
   )
 ];
 

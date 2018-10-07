@@ -16,10 +16,6 @@ const buildProgresssBar = total => {
 };
 
 const mainWithConfig = async () => {
-  const optionRpcUrl = url => {
-    return url || process.env.RPC_URL || "http://localhost:8546";
-  };
-
   const program = require("yargs")
     .env()
     .option("from-address", {

@@ -14,7 +14,6 @@ const mainWithConfig = async () => {
       demandOption: true,
       describe: "Name of the redisearch index"
     })
-    .default("rpc-url", "http://localhost:8546")
     .option("rpc-url", {
       describe: "URL of JSON-RPC endpoint"
     })

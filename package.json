@@ -17,6 +17,7 @@
   "homepage": "https://github.com/rlay-project/rlay-utils",
   "bin": {
     "rlay-seed": "./lib/bin/seed_from_file.js",
+    "rlay-dump": "./lib/bin/dump_ontology_to_file.js",
     "rlay-sync-redis-search": "./lib/bin/redis-sync-search.js"
   },
   "author": "Maximilian Goisser <max@rlay.com>",
@@ -27,6 +28,7 @@
   "dependencies": {
     "@babel/runtime": "^7.0.1",
     "@rlay/web3-rlay": "0.1.7",
+    "lru-cache": "^4.1.3",
     "p-limit": "^2.0.0",
     "p-queue": "^3.0.0",
     "progress": "^2.0.0",

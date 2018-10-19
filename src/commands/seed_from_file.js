@@ -19,8 +19,10 @@ const mainWithConfig = async () => {
   const program = require("yargs")
     .env()
     .option("from-address", {
-      demandOption: true,
       describe: "Send the transactions from [address]"
+    })
+    .option("backend", {
+      describe: "The name of the Rlay backend to use on the RPC"
     })
     .option("rpc-url", {
       describe: "URL of JSON-RPC endpoint [url]"
@@ -32,6 +34,7 @@ const mainWithConfig = async () => {
 
   const config = {
     address: program.fromAddress,
+    backend: program.backend,
     rpcUrl: program.rpcUrl,
     inputFilePath: path.resolve(program.input)
   };
@@ -92,7 +95,13 @@ const mainWithConfig = async () => {
 
     const storeEntity = async entity => {
       const normalStore = entity => {
-        return rlay.store(web3, entity, { gas: 1000000 }).then(cid => {
+        const options = {
+          gas: 1000000
+        };
+        if (config.backend) {
+          options.backend = config.backend;
+        }
+        return rlay.store(web3, entity, options).then(cid => {
           progress.tick();
           return cid;
         });

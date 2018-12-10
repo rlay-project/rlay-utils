@@ -108,8 +108,12 @@ const mainWithConfig = async () => {
       };
 
       const optionalStore = entity => {
+        const options = {};
+        if (config.backend) {
+          options.backend = config.backend;
+        }
         return web3.rlay.experimentalGetEntityCid(entity).then(cid =>
-          web3.rlay.experimentalGetEntity(cid).then(maybeRes => {
+          web3.rlay.experimentalGetEntity(cid, options).then(maybeRes => {
             if (maybeRes) {
               return cid;
             }

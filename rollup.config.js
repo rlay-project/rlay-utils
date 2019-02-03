@@ -63,6 +63,10 @@ const config = [
   buildConfig(
     "./src/commands/redis-sync-search.js",
     "./lib/bin/redis-sync-search.js"
+  ),
+  buildConfig(
+    "./src/commands/generate.js",
+    "./lib/bin/generate.js"
   )
 ];
 

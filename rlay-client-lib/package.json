@@ -1,0 +1,19 @@
+{
+  "name": "@rlay/rlay-client-lib",
+  "version": "0.1.0-pre.1",
+  "author": "Michael Hirn <michael.j.hirn@gmail.com>",
+  "license": "Apache-2.0",
+  "main": "src/client.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "@rlay/web3-rlay": "^0.1.12",
+    "p-limit": "^2.1.0",
+    "web3": "^0.20.0"
+  },
+  "devDependencies": {
+    "mocha": "^6.0.0"
+  },
+  "peerDependencies": {}
+}

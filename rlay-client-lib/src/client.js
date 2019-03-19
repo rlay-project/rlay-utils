@@ -29,7 +29,7 @@ class Client {
     this.initConfig(config);
 
     this.web3 = new Web3(this.config.RpcUrl);
-    rlay.extendWeb3OldWithRlay(this.web3);
+    rlay.extendWeb3WithRlay(this.web3);
     this.web3.eth.defaultAccount = this.config.address;
 
     this.rlay = rlay;

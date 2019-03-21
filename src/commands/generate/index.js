@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 //import esformatter from 'esformatter';
 import Generator from './generator.js';
@@ -41,4 +41,8 @@ Object.keys(schemas).forEach(fileKey => {
 });
 
 const source = Generator.generate(JSON.stringify(assertions));
-fs.writeFileSync(path.join(process.cwd(), './generated/rlay-client/index.js'), source, 'utf8');
+
+const generatedDir = path.join(process.cwd(), './generated/rlay-client/');
+const generatedFile = path.join(generatedDir, './index.js');
+fs.ensureDirSync(generatedDir);
+fs.writeFileSync(generatedFile, source, 'utf8');

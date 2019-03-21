@@ -8,7 +8,7 @@ export default class Generator {
     return `
     const fs = require('fs');
     const path = require('path');
-    const { Client } = require('rlay-client-lib');
+    const { Client } = require('@rlay/rlay-client-lib');
     const schemaSeeded = JSON.parse(
       fs.readFileSync(path.join(__dirname, '../../build/schema/seed.json'), 'utf8'));
 

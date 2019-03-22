@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const { Client } = require('../src/client.js');
-const assets = require('./assets');
+const { cids, schema} = require('./assets');
 
 let rlay;
 
@@ -12,41 +12,40 @@ describe('Client', () => {
 
     beforeEach(() => {
       rlay = new Client();
-      assets.schema.forEach(assertion => {
-        rlay.initSchema(assertion.name, assertion.data);
-      });
+      rlay.initSchema(cids, schema);
+      rlay.initClient();
     })
 
     it('should create ASYNC `assert` functions', () => {
-      assert.equal(rlay.assertPublicUnicorn[Symbol.toStringTag], 'AsyncFunction');
+      assert.equal(rlay.assertHttpConnection[Symbol.toStringTag], 'AsyncFunction');
     });
 
     it ('should create `prepare` functions', () => {
-      assert.equal(rlay.preparePublicUnicorn instanceof Function, true);
+      assert.equal(rlay.prepareHttpConnection instanceof Function, true);
     });
 
     it ('should create proper `prepare-ClassAssertion` functions', () => {
       const assertion = JSON.stringify({
         type: 'ClassAssertion',
         subject: '0x00',
-        class: undefined });
-      assert.equal(JSON.stringify(rlay.preparePublicUnicorn()), assertion);
+        class: '0x01' });
+      assert.equal(JSON.stringify(rlay.prepareHttpConnection()), assertion);
     });
 
     xit ('should create proper `prepare-DataPropertyAssertion` functions', () => {
       const assertion = JSON.stringify({
         type: 'DataPropertyAssertion',
-        subject: '0x00',
+        subject: '0x01',
         class: undefined });
-      assert.equal(JSON.stringify(rlay.preparePublicUnicorn()), assertion);
+      assert.equal(JSON.stringify(rlay.prepareHttpConnection()), assertion);
     });
 
     xit ('should create proper `prepare-ObjectPropertyAssertion` functions', () => {
       const assertion = JSON.stringify({
         type: 'ObjectPropertyAssertion',
-        subject: '0x00',
+        subject: '0x01',
         class: undefined });
-      assert.equal(JSON.stringify(rlay.preparePublicUnicorn()), assertion);
+      assert.equal(JSON.stringify(rlay.prepareHttpConnection()), assertion);
     });
 
     it ('should create proper `prepare-Individual` function', () => {

@@ -33,6 +33,7 @@ class Client {
     this.web3.eth.defaultAccount = this.config.address;
 
     this.rlay = rlay;
+    this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
   }
 
@@ -54,47 +55,67 @@ class Client {
     Object.assign(this.config, config);
   }
 
-  initSchema (name, payload) {
-    if (payload.type === 'Class') {
-      this[`prepare${generateFnName(name)}`] = (subject) => {
-        return {
-          type: 'ClassAssertion',
-          subject: subject || '0x00',
-          class: this[`${name}`],
-        };
+  initSchema (schemaCIDs, schema) {
+    this.schema = Object.assign(this.schema, schemaCIDs);
+    // transform this.schema['abc'] = "0x00xx" to
+    //           this.schema['abc'] = { cid: "0x00xx" }
+    Object.keys(this.schema).forEach(key => {
+      const cid = this.schema[key];
+      this.schema[key] = { cid };
+    });
+    // add additional schema info from @param: `schema`
+    schema.forEach(assertion => {
+      if (this.schema[assertion.key]) {
+        this.schema[assertion.key] = Object.assign(this.schema[assertion.key], assertion.assertion);
       }
-      this[`assert${generateFnName(name)}`] = async (subject) => {
-        return this.createEntity(this[`prepare${generateFnName(name)}`](subject))
-      }
-    }
+    });
+  }
 
-    if (payload.type === 'DataProperty') {
-      this[`prepare${generateFnName(name)}`] = (subject, target) => {
-        return {
-          type: 'DataPropertyAssertion',
-          subject: subject,
-          property: this[`${name}`],
-          target: this.rlay.encodeValue(target),
-        };
-      }
-      this[`assert${generateFnName(name)}`] = async (subject, target) => {
-        return this.createEntity(this[`prepare${generateFnName(name)}`](subject, target))
-      }
-    }
+  initClient () {
+    Object.keys(this.schema).forEach(key => {
+      const schemaObj = this.schema[key];
 
-    if (payload.type === 'ObjectProperty') {
-      this[`prepare${generateFnName(name)}`] = (subject, target) => {
-        return {
-          type: 'ObjectPropertyAssertion',
-          subject: subject,
-          property: this[`${name}`],
-          target: target,
-        };
+      if (schemaObj.type === 'Class') {
+        this[`prepare${generateFnName(key)}`] = (subject) => {
+          return {
+            type: 'ClassAssertion',
+            subject: subject || '0x00',
+            class: schemaObj.cid,
+          };
+        }
+        this[`assert${generateFnName(key)}`] = async (subject) => {
+          return this.createEntity(this[`prepare${generateFnName(key)}`](subject))
+        }
       }
-      this[`assert${generateFnName(name)}`] = async (subject, target) => {
-        return this.createEntity(this[`prepare${generateFnName(name)}`](subject, target))
+
+      if (schemaObj.type === 'DataProperty') {
+        this[`prepare${generateFnName(key)}`] = (subject, target) => {
+          return {
+            type: 'DataPropertyAssertion',
+            subject: subject,
+            property: schemaObj.cid,
+            target: this.rlay.encodeValue(target),
+          };
+        }
+        this[`assert${generateFnName(key)}`] = async (subject, target) => {
+          return this.createEntity(this[`prepare${generateFnName(key)}`](subject, target))
+        }
       }
-    }
+
+      if (schemaObj.type === 'ObjectProperty') {
+        this[`prepare${generateFnName(key)}`] = (subject, target) => {
+          return {
+            type: 'ObjectPropertyAssertion',
+            subject: subject,
+            property: schemaObj.cid,
+            target: target,
+          };
+        }
+        this[`assert${generateFnName(key)}`] = async (subject, target) => {
+          return this.createEntity(this[`prepare${generateFnName(key)}`](subject, target))
+        }
+      }
+    });
   }
 }
 

@@ -1,20 +1,24 @@
 module.exports = {
+  cids: {
+    'httpConnectionClass': '0x01',
+    'httpEntityHeaderClass': '0x02'
+  },
   schema: [
     {
-      name: 'publicUnicornClass',
-      data: {
-        type: 'Class',
-        annotations: [ '*publicUnicornClassLabel', '*publicUnicornClassDescription' ],
-        superClassExpression: [ '*corporationMainClass' ]
+      "file":"http",
+      "key":"httpConnectionClass",
+      "assertion":{
+        "type":"Class",
+        "annotations":["*httpConnectionClassLabel","*httpConnectionClassDescription"]
       }
     },
     {
-      name: 'publicUnicornClass',
-      data: {
-        type: 'Class',
-        annotations: [ '*publicUnicornClassLabel', '*publicUnicornClassDescription' ],
-        superClassExpression: [ '*corporationMainClass' ]
+      "file":"http",
+      "key":"httpEntityHeaderClass",
+      "assertion":{
+        "type":"Class",
+        "annotations":["*httpEntityHeaderClassLabel","*httpEntityHeaderClassDescription"]
       }
     }
-  ]
+  ],
 };

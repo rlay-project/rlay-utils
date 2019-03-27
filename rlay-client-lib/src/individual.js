@@ -1,5 +1,6 @@
 const { generateFnName } = require('./utils');
 const { UnknownEntityError } = require('./errors');
+const logger = require('./logger')(__filename);
 
 class Individual {
   constructor (client) {
@@ -35,9 +36,10 @@ class Individual {
       }
     });
 
-    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
+    const start = Date.now();
+    logger.debug(`Storing Individual (${start}) ...`);
     const entityCID = await this.client.createIndividual(entityValue);
-    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
+    logger.debug(`Stored Individual (${start} -> ${entityCID}) in ${Date.now() - start}ms`);
     return entityCID;
   }
 
@@ -66,9 +68,10 @@ class Individual {
       }
     });
 
-    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
+    const start = Date.now();
+    logger.debug(`Storing Entity/ies (${start}) ...`);
     const assertionCIDs = await Promise.all(assertionPromises);
-    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
+    logger.debug(`Stored Entity/ies (${start} -> ${assertionCIDs}) in ${Date.now() - start}ms`);
     return assertionCIDs;
   }
 }

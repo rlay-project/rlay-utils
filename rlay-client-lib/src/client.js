@@ -1,30 +1,20 @@
 const Web3 = require('web3');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
+const { generateFnName } = require('./utils');
 
 class Config {
   constructor() {
     this.address = '0xc02345a911471fd46c47c4d3c2e5c85f5ae93d13';
     this.backed = 'myneo4j';
     this.RpcUrl = process.env.RPC_URL || 'http://localhost:8546';
-    this.storeLimit = pLimit(50);
+    this.storeLimit = 50;
     Object.seal(this);
   }
 }
 
-const capitalizeFirstLetter = (string) => {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-const generateFnName = (string) => {
-  if (string.endsWith('Class')) return capitalizeFirstLetter(string.slice(0, -5));
-  if (string.endsWith('DataProperty')) return capitalizeFirstLetter(string.slice(0, -12));
-  if (string.endsWith('ObjectProperty')) return capitalizeFirstLetter(string.slice(0, -14));
-  return string;
-}
-
 class Client {
-  constructor (config={}) {
+  constructor (config = {}) {
     this.config = new Config();
     this.initConfig(config);
 
@@ -92,7 +82,7 @@ class Client {
         this[`prepare${generateFnName(key)}`] = (subject, target) => {
           return {
             type: 'DataPropertyAssertion',
-            subject: subject,
+            subject: subject || '0x00',
             property: schemaObj.cid,
             target: this.rlay.encodeValue(target),
           };
@@ -106,7 +96,7 @@ class Client {
         this[`prepare${generateFnName(key)}`] = (subject, target) => {
           return {
             type: 'ObjectPropertyAssertion',
-            subject: subject,
+            subject: subject || '0x00',
             property: schemaObj.cid,
             target: target,
           };

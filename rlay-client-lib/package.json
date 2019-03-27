@@ -13,7 +13,8 @@
     "web3": "1.0.0-beta.35"
   },
   "devDependencies": {
-    "mocha": "^6.0.0"
+    "mocha": "^6.0.0",
+    "simple-mock": "^0.8.0"
   },
   "peerDependencies": {}
 }

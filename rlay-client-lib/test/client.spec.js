@@ -1,14 +1,27 @@
-const fs = require('fs');
-const path = require('path');
 const assert = require('assert');
-const { Client } = require('../src/client.js');
+const { Client } = require('../src/client');
+const Individual = require('../src/individual');
 const { cids, schema} = require('./assets');
 
 let rlay;
 
 describe('Client', () => {
 
-  describe('initSchema', () => {
+  describe('new', () => {
+
+    beforeEach(() => {
+      rlay = new Client();
+      rlay.initSchema(cids, schema);
+      rlay.initClient();
+    })
+
+    it('should have .Individual property', async () => {
+      assert.equal(rlay.Individual instanceof Individual, true);
+    });
+
+  });
+
+  describe('.initClient', () => {
 
     beforeEach(() => {
       rlay = new Client();

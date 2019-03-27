@@ -2,6 +2,7 @@ const Web3 = require('web3');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
 const { generateFnName } = require('./utils');
+const Individual = require('./individual');
 
 class Config {
   constructor() {
@@ -25,6 +26,7 @@ class Client {
     this.rlay = rlay;
     this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
+    this.Individual = new Individual(this);
   }
 
   async createEntity (entity) {

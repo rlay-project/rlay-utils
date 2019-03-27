@@ -1,4 +1,5 @@
 const { generateFnName } = require('./utils');
+const { UnknownEntityError } = require('./errors');
 
 class Individual {
   constructor (client) {
@@ -56,7 +57,13 @@ class Individual {
       const propertyValue = assertions[propertyKey];
       const propertyFunctionName = `assert${generateFnName(propertyKey)}`;
       const propertyFunction = this.client[propertyFunctionName];
-      assertionPromises.push(propertyFunction(individual, propertyValue));
+      if (propertyFunction instanceof Function) {
+        assertionPromises.push(propertyFunction(individual, propertyValue));
+      } else {
+        throw new UnknownEntityError(
+          `No schema entity exists for: '${propertyKey}'. Make sure you seeded it.`
+        );
+      }
     });
 
     //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);

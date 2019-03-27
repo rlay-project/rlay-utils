@@ -3,6 +3,7 @@ const simple = require('simple-mock')
 const Individual = require('../src/individual');
 const { Client } = require('../src/client');
 const { cids, schema} = require('./assets');
+const { UnknownEntityError } = require('../src/errors');
 
 let rlay;
 let indi;
@@ -35,6 +36,17 @@ describe('Individual', () => {
         httpEntityHeaderClass: true
       });
       assert.equal(rlay.createEntity.callCount, 3);
+    });
+
+    it('should throw an error if property does not exist', async () => {
+      try {
+        await indi.create({
+          doesNotExist: true,
+        });
+        assert.equal(false, true);
+      } catch (e) {
+        assert.equal(e instanceof UnknownEntityError, true);
+      }
     });
 
   });

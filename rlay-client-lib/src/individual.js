@@ -13,7 +13,6 @@ class Individual {
    */
   async create (properties) {
     const propertyKeys = Object.keys(properties);
-    const propertyPromises = [];
     const entityValue = {};
     const schemaTypeMapping = {
       'Class': 'class_assertions',
@@ -21,18 +20,8 @@ class Individual {
       'ObjectProperty': 'object_property_assertions',
     };
 
-    // setup `propertyPromises`
-    propertyKeys.forEach(propertyKey => {
-      const propertyValue = properties[propertyKey];
-      const propertyFunctionName = `assert${generateFnName(propertyKey)}`;
-      const propertyFunction = this.client[propertyFunctionName];
-      // eslint-disable-next-line no-undefined
-      propertyPromises.push(propertyFunction(undefined, propertyValue));
-    });
-
-    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
-    const propertyCIDs = await Promise.all(propertyPromises);
-    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
+    // eslint-disable-next-line no-undefined
+    const propertyCIDs = await this.assert(properties, undefined);
 
     // setup `entityValue`
     propertyCIDs.forEach((cid, i) => {
@@ -57,7 +46,24 @@ class Individual {
    * @param {Object} assertions - The non-inherent properties of the individual
    * @returns {String[]} - The `CID`s of the assertions
    */
-  async assert (assertions) { }
+  // eslint-disable-next-line no-undefined
+  async assert (assertions, individual = undefined) {
+    const assertionKeys = Object.keys(assertions);
+    const assertionPromises = [];
+
+    // setup `propertyPromises`
+    assertionKeys.forEach(propertyKey => {
+      const propertyValue = assertions[propertyKey];
+      const propertyFunctionName = `assert${generateFnName(propertyKey)}`;
+      const propertyFunction = this.client[propertyFunctionName];
+      assertionPromises.push(propertyFunction(individual, propertyValue));
+    });
+
+    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
+    const assertionCIDs = await Promise.all(assertionPromises);
+    //logger.info(`Stored ${this.urn.entityType}: ${this.name} (${this.cid})`);
+    return assertionCIDs;
+  }
 }
 
 module.exports = Individual;

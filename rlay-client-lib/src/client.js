@@ -1,8 +1,8 @@
 const Web3 = require('web3');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
-const { generateFnName } = require('./utils');
-const Individual = require('./individual');
+const EntityMetaFactory = require('./entity/meta-factory');
+const RlayEntities = require('./rlay');
 
 class Config {
   constructor() {
@@ -26,21 +26,20 @@ class Client {
     this.rlay = rlay;
     this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
-    this.Individual = new Individual(this);
+    this.entityMetaFactory = new EntityMetaFactory(this);
+
+    // set client for RlayEntities
+    Object.keys(RlayEntities).forEach(entity => {
+      RlayEntities[entity].client = this;
+    });
+    Object.assign(this, RlayEntities);
+    this.Individual = this.Rlay_Individual;
   }
 
   async createEntity (entity) {
     return this.storeLimit(async () => {
       return this.rlay.store(this.web3, entity, { backend: this.config.backend });
     })
-  }
-
-  async createIndividual (params) {
-    return this.createEntity(this.prepareIndividual(params));
-  }
-
-  prepareIndividual (params) {
-    return Object.assign(params, { type: 'Individual', });
   }
 
   initConfig (config) {
@@ -58,55 +57,26 @@ class Client {
     // add additional schema info from @param: `schema`
     schema.forEach(assertion => {
       if (this.schema[assertion.key]) {
-        this.schema[assertion.key] = Object.assign(this.schema[assertion.key], assertion.assertion);
+        this.schema[assertion.key] = Object.assign(
+          this.schema[assertion.key],
+          assertion.assertion
+        );
+        // convert to proper Rlay Entity
+        this.schema[assertion.key] = this.entityMetaFactory.fromType(
+          this.schema[assertion.key].type,
+          this.schema[assertion.key],
+          this.schema[assertion.key].cid,
+        );
       }
     });
   }
 
   initClient () {
     Object.keys(this.schema).forEach(key => {
-      const schemaObj = this.schema[key];
-
-      if (schemaObj.type === 'Class') {
-        this[`prepare${generateFnName(key)}`] = (subject) => {
-          return {
-            type: 'ClassAssertion',
-            subject: subject || '0x00',
-            class: schemaObj.cid,
-          };
-        }
-        this[`assert${generateFnName(key)}`] = async (subject) => {
-          return this.createEntity(this[`prepare${generateFnName(key)}`](subject))
-        }
-      }
-
-      if (schemaObj.type === 'DataProperty') {
-        this[`prepare${generateFnName(key)}`] = (subject, target) => {
-          return {
-            type: 'DataPropertyAssertion',
-            subject: subject || '0x00',
-            property: schemaObj.cid,
-            target: this.rlay.encodeValue(target),
-          };
-        }
-        this[`assert${generateFnName(key)}`] = async (subject, target) => {
-          return this.createEntity(this[`prepare${generateFnName(key)}`](subject, target))
-        }
-      }
-
-      if (schemaObj.type === 'ObjectProperty') {
-        this[`prepare${generateFnName(key)}`] = (subject, target) => {
-          return {
-            type: 'ObjectPropertyAssertion',
-            subject: subject || '0x00',
-            property: schemaObj.cid,
-            target: target,
-          };
-        }
-        this[`assert${generateFnName(key)}`] = async (subject, target) => {
-          return this.createEntity(this[`prepare${generateFnName(key)}`](subject, target))
-        }
-      }
+      const schemaEntity = this.schema[key];
+      try {
+        this[key] = this.entityMetaFactory.fromSchema(schemaEntity);
+      } catch (_) { }
     });
   }
 }

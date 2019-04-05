@@ -1,68 +1,42 @@
 const assert = require('assert');
+const simple = require('simple-mock')
 const { Client } = require('../src/client');
-const Individual = require('../src/individual');
+const { Rlay_Individual, Rlay_ClassAssertion, Entity } = require('../src/rlay');
 const { cids, schema} = require('./assets');
 
-let rlay;
+let client;
 
 describe('Client', () => {
 
+  beforeEach(() => {
+    client = new Client();
+    client.initSchema(cids, schema);
+    client.initClient();
+  })
+
+  beforeEach(() => {
+    // mock it
+    simple.mock(client, 'createEntity').callFn(
+      async (entity) => Promise.resolve('0x0000')
+    );
+  });
+
   describe('new', () => {
 
-    beforeEach(() => {
-      rlay = new Client();
-      rlay.initSchema(cids, schema);
-      rlay.initClient();
-    })
+    it('should have the Rlay Entities exposed', async () => {
+      assert.equal(client.Rlay_Individual.prototype instanceof Entity, true);
+    });
 
-    it('should have .Individual property', async () => {
-      assert.equal(rlay.Individual instanceof Individual, true);
+    it('should have `Rlay_Individual` also exposed as `Individual', async () => {
+      assert.equal(client.Individual, client.Rlay_Individual);
     });
 
   });
 
   describe('.initClient', () => {
 
-    beforeEach(() => {
-      rlay = new Client();
-      rlay.initSchema(cids, schema);
-      rlay.initClient();
-    })
-
-    it('should create ASYNC `assert` functions', () => {
-      assert.equal(rlay.assertHttpConnection[Symbol.toStringTag], 'AsyncFunction');
-    });
-
-    it ('should create `prepare` functions', () => {
-      assert.equal(rlay.prepareHttpConnection instanceof Function, true);
-    });
-
-    it ('should create proper `prepare-ClassAssertion` functions', () => {
-      const assertion = JSON.stringify({
-        type: 'ClassAssertion',
-        subject: '0x00',
-        class: '0x01' });
-      assert.equal(JSON.stringify(rlay.prepareHttpConnection()), assertion);
-    });
-
-    xit ('should create proper `prepare-DataPropertyAssertion` functions', () => {
-      const assertion = JSON.stringify({
-        type: 'DataPropertyAssertion',
-        subject: '0x01',
-        class: undefined });
-      assert.equal(JSON.stringify(rlay.prepareHttpConnection()), assertion);
-    });
-
-    xit ('should create proper `prepare-ObjectPropertyAssertion` functions', () => {
-      const assertion = JSON.stringify({
-        type: 'ObjectPropertyAssertion',
-        subject: '0x01',
-        class: undefined });
-      assert.equal(JSON.stringify(rlay.prepareHttpConnection()), assertion);
-    });
-
-    it ('should create proper `prepare-Individual` function', () => {
-      assert.equal(JSON.stringify(rlay.prepareIndividual({})), '{"type":"Individual"}');
+    it('should expose the schema correctly', async () => {
+      assert.equal(client.httpConnectionClass.prototype instanceof Rlay_ClassAssertion, true);
     });
 
   });

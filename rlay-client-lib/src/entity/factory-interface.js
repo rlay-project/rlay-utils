@@ -22,6 +22,16 @@ class EntityFactoryInterface extends EntityInterface {
     return format;
   }
 
+  static async find (cid) {
+    if (typeof cid === 'string') {
+      const start = Date.now();
+      logger.debug(`Finding Entity (${start}) ...`);
+      const resultCID = await this.client.findEntityByCID(cid);
+      logger.debug(`Finding Entity Result (${start} -> ${cid}) in ${Date.now() - start}ms`);
+      return new this(this.client, {}, resultCID);
+    }
+  }
+
   static get client () {
     // If `_foo` is inherited or doesn't exist yet, treat it as `undefined`
     return this.hasOwnProperty('_client') ? this._client : void 0;

@@ -10,6 +10,7 @@ class Config {
     this.backed = 'myneo4j';
     this.RpcUrl = process.env.RPC_URL || 'http://localhost:8546';
     this.storeLimit = 50;
+    this.readLimit = 50;
     Object.seal(this);
   }
 }
@@ -26,6 +27,7 @@ class Client {
     this.rlay = rlay;
     this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
+    this.readLimit = pLimit(this.config.readLimit);
     this.entityMetaFactory = new EntityMetaFactory(this);
 
     // set client for RlayEntities
@@ -39,6 +41,12 @@ class Client {
   async createEntity (entity) {
     return this.storeLimit(async () => {
       return this.rlay.store(this.web3, entity, { backend: this.config.backend });
+    })
+  }
+
+  async findEntityByCID (cid) {
+    return this.readLimit(async () => {
+      return this.rlay.retrieve(this.web3, cid, { backend: this.config.backend });
     })
   }
 

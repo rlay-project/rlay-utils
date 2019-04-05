@@ -20,7 +20,10 @@ describe('Rlay_Individual', () => {
   beforeEach(() => {
     // mock it
     simple.mock(client, 'createEntity').callFn(
-      async (entity) => Promise.resolve('0x0000')
+      async () => Promise.resolve('0x0000')
+    );
+    simple.mock(client, 'findEntityByCID').callFn(
+      async () => Promise.resolve('0x0000')
     );
   });
 
@@ -92,6 +95,43 @@ describe('Rlay_Individual', () => {
       it('should use base defaults', async () => {
         const target = JSON.stringify({ type: testObjType });
         assert.equal(JSON.stringify(callArg), target);
+      });
+
+    });
+
+  });
+
+  describe('static .find', () => {
+
+    const payload = {
+      httpConnectionClass: true,
+      httpEntityHeaderClass: true
+    };
+    let instance;
+    let result;
+    let callArg;
+
+    beforeEach(async () => {
+      instance = await testObj.create();
+      result = await instance.assert(payload);
+      callArg = client.createEntity.lastCall.arg;
+    });
+
+    context('with CID', () => {
+
+      beforeEach(async () => {
+        result = await testObj.find('0xabc');
+      });
+
+      it('should call `client.findEntityByCID` to find the `Entity`', async () => {
+        assert.equal(client.findEntityByCID.callCount, 1);
+      });
+
+      it('should return an `Entity` instance', async () => {
+        assert.equal(result instanceof testObj, true);
+        assert.equal(result.client instanceof Client, true);
+        assert.equal(result.payload instanceof Object, true);
+        assert.equal(typeof result.cid, 'string');
       });
 
     });

@@ -2,14 +2,21 @@ const Entity = require('../entity/entity');
 const Rlay_Individual = require('./individual');
 
 /* Annotation */
-class Rlay_Annotation extends Entity { }
+class Rlay_Annotation extends Entity {
+  static prepareRlayFormat (params = {}) {
+    if (params.value) {
+      params.value = this.client.rlay.encodeValue(params.value);
+    }
+    return super.prepareRlayFormat(params);
+  }
+}
 Rlay_Annotation.type = 'Annotation';
 Rlay_Annotation.fields = ['annotations', 'property', 'value'];
 
 /* AnnotationProperty */
 class Rlay_AnnotationProperty extends Entity { }
-Rlay_Annotation.type = 'AnnotationProperty';
-Rlay_Annotation.fields = ['annotations'];
+Rlay_AnnotationProperty.type = 'AnnotationProperty';
+Rlay_AnnotationProperty.fields = ['annotations'];
 
 /* Class */
 class Rlay_Class extends Entity { }
@@ -28,9 +35,17 @@ Rlay_DataProperty.type = 'DataProperty';
 Rlay_DataProperty.fields = ['annotations', 'superDataPropertyExpression'];
 
 /* DataPropertyAssertion */
-class Rlay_DataPropertyAssertion extends Entity { }
+class Rlay_DataPropertyAssertion extends Entity {
+  static prepareRlayFormat (params = {}) {
+    if (params.target) {
+      params.target = this.client.rlay.encodeValue(params.target);
+    }
+    return super.prepareRlayFormat(params);
+  }
+}
 Rlay_DataPropertyAssertion.type = 'DataPropertyAssertion';
 Rlay_DataPropertyAssertion.fields = ['subject', 'property', 'target'];
+Rlay_DataPropertyAssertion.fieldsDefault = { subject: '0x00' };
 
 /* ObjectProperty */
 class Rlay_ObjectProperty extends Entity { }

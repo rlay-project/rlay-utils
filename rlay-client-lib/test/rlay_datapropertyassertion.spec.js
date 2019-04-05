@@ -1,15 +1,15 @@
 const assert = require('assert');
 const simple = require('simple-mock');
-const { Rlay_ClassAssertion, Entity } = require('../src/rlay');
+const { Rlay_DataPropertyAssertion, Entity } = require('../src/rlay');
 const { Client } = require('../src/client');
 const { cids, schema } = require('./assets');
 const { UnknownEntityError } = require('../src/errors');
 
 let client;
-const testObj = Rlay_ClassAssertion;
-const testObjType = 'ClassAssertion';
+const testObj = Rlay_DataPropertyAssertion;
+const testObjType = 'DataPropertyAssertion';
 
-describe('Rlay_ClassAssertion', () => {
+describe('Rlay_DataPropertyAssertion', () => {
 
   beforeEach(() => {
     client = new Client();
@@ -60,8 +60,11 @@ describe('Rlay_ClassAssertion', () => {
     it('should call `client.createEntity` with the correct payload', async () => {
       const target = JSON.stringify({
         subject: '0x00',
+        property: '0x01',
         type: testObjType
       });
+      assert.equal(callArg.target instanceof Buffer, true);
+      delete callArg.target
       assert.equal(JSON.stringify(callArg), target);
     });
 

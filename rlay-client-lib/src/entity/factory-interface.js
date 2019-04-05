@@ -15,7 +15,7 @@ class EntityFactoryInterface extends EntityInterface {
     const format = { };
     this.fields.forEach(field => {
       format[field] = (
-        params[field] || (this.fieldsDefault || {})[field] || []
+        params[field] || (this.fieldsDefault || {})[field] || undefined
       );
     });
     format.type = this.type;

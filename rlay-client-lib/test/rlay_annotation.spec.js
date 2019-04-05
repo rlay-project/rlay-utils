@@ -1,15 +1,15 @@
 const assert = require('assert');
 const simple = require('simple-mock');
-const { Rlay_ClassAssertion, Entity } = require('../src/rlay');
+const { Rlay_Annotation, Entity } = require('../src/rlay');
 const { Client } = require('../src/client');
 const { cids, schema } = require('./assets');
 const { UnknownEntityError } = require('../src/errors');
 
 let client;
-const testObj = Rlay_ClassAssertion;
-const testObjType = 'ClassAssertion';
+const testObj = Rlay_Annotation;
+const testObjType = 'Annotation';
 
-describe('Rlay_ClassAssertion', () => {
+describe('Rlay_Annotation', () => {
 
   beforeEach(() => {
     client = new Client();
@@ -34,7 +34,7 @@ describe('Rlay_ClassAssertion', () => {
   it('should have its properties correctly defined', () => {
     assert.equal(testObj.client instanceof Client, true);
     assert.equal(testObj.fields instanceof Array, true);
-    assert.equal(testObj.fieldsDefault instanceof Object, true);
+    assert.equal(testObj.fieldsDefault, undefined);
     assert.equal(testObj.type, testObjType);
   });
 
@@ -43,7 +43,8 @@ describe('Rlay_ClassAssertion', () => {
     const targetValue = 'test';
     const payload = {
       property: '0x01',
-      target: targetValue
+      annotations: ['0x001'],
+      value: targetValue
     };
     let result;
     let callArg;
@@ -59,9 +60,12 @@ describe('Rlay_ClassAssertion', () => {
 
     it('should call `client.createEntity` with the correct payload', async () => {
       const target = JSON.stringify({
-        subject: '0x00',
+        annotations: ['0x001'],
+        property: '0x01',
         type: testObjType
       });
+      assert.equal(callArg.value instanceof Buffer, true);
+      delete callArg.value
       assert.equal(JSON.stringify(callArg), target);
     });
 
@@ -81,9 +85,6 @@ describe('Rlay_ClassAssertion', () => {
 
       it ('should use base defaults', async () => {
         const target = JSON.stringify({
-          subject: '0x00',
-          property: undefined,
-          target: undefined,
           type: testObjType
         });
         assert.equal(JSON.stringify(callArg), target);
@@ -100,9 +101,6 @@ describe('Rlay_ClassAssertion', () => {
 
       it('should use base defaults', async () => {
         const target = JSON.stringify({
-          subject: '0x00',
-          property: undefined,
-          target: undefined,
           type: testObjType
         });
         assert.equal(JSON.stringify(callArg), target);

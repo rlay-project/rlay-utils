@@ -8,6 +8,16 @@ const { UnknownEntityError } = require('../src/errors');
 let client;
 const testObj = Rlay_Individual;
 const testObjType = 'Individual';
+const defaultPayload = {
+  "annotations": [],
+  "class_assertions": [],
+  "negative_class_assertions": [],
+  "object_property_assertions": [],
+  "negative_object_property_assertions": [],
+  "data_property_assertions": [],
+  "negative_data_property_assertions": [],
+  "type": testObjType
+};
 
 describe('Rlay_Individual', () => {
 
@@ -23,7 +33,15 @@ describe('Rlay_Individual', () => {
       async () => Promise.resolve('0x0000')
     );
     simple.mock(client, 'findEntityByCID').callFn(
-      async () => Promise.resolve('0x0000')
+      async () => Promise.resolve({
+        type: 'DataProperty',
+        annotations:
+        [
+          '0x019580031b20d3af56cf7f30f98f5a22f969cf8cdc63de86eb11ca69dae9e8734d2d51abe8fb',
+          '0x019580031b20af5050cc610e78eac40165d6c199980f4f347d0f227d624a1160bf8d126301ed'
+        ],
+        superDataPropertyExpression: [] }
+      )
     );
   });
 
@@ -31,11 +49,12 @@ describe('Rlay_Individual', () => {
     assert.equal(testObj.prototype instanceof Entity, true);
   });
 
-  it('should have its properties correctly defined', () => {
+  it('should have `.client` defined', () => {
     assert.equal(testObj.client instanceof Client, true);
-    assert.equal(testObj.fields instanceof Array, true);
-    assert.equal(testObj.fieldsDefault, undefined);
-    assert.equal(testObj.type, testObjType);
+  });
+
+  it('should have `.intermediate` defined', () => {
+    assert.equal(testObj.intermediate instanceof Object, true);
   });
 
   describe('static .create', () => {
@@ -57,10 +76,10 @@ describe('Rlay_Individual', () => {
     });
 
     it('should call `client.createEntity` with the correct payload', async () => {
-      const target = JSON.stringify({
-        class_assertions: ['0x0000', '0x0000'],
-        type: testObjType
-      });
+      const target = JSON.stringify(Object.assign(
+        Object.assign({}, defaultPayload),
+        { class_assertions: ['0x0000', '0x0000'] }
+      ));
       assert.equal(JSON.stringify(callArg), target);
     });
 
@@ -79,7 +98,7 @@ describe('Rlay_Individual', () => {
       });
 
       it ('should use base defaults', async () => {
-        const target = JSON.stringify({ type: testObjType });
+        const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       })
 
@@ -93,7 +112,7 @@ describe('Rlay_Individual', () => {
       });
 
       it('should use base defaults', async () => {
-        const target = JSON.stringify({ type: testObjType });
+        const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       });
 
@@ -127,11 +146,15 @@ describe('Rlay_Individual', () => {
         assert.equal(client.findEntityByCID.callCount, 1);
       });
 
-      it('should return an `Entity` instance', async () => {
-        assert.equal(result instanceof testObj, true);
+      it('should return the correct `Entity` instance', async () => {
+        assert.equal(result instanceof client.Rlay_DataProperty, true);
         assert.equal(result.client instanceof Client, true);
         assert.equal(result.payload instanceof Object, true);
         assert.equal(typeof result.cid, 'string');
+      });
+
+      it('works', async () => {
+        //result = await client.findEntityByCypher('MATCH (n:RlayEntity) RETURN n.cid LIMIT 200');
       });
 
     });

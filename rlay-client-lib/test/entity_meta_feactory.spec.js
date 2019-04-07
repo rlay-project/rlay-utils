@@ -1,6 +1,9 @@
 const assert = require('assert');
 const simple = require('simple-mock')
 const {
+  Rlay_Individual,
+  Rlay_Annotation,
+  Rlay_AnnotationProperty,
   Rlay_Class,
   Rlay_ClassAssertion,
   Rlay_DataProperty,
@@ -29,6 +32,91 @@ describe('EntityMetaFactory', () => {
     simple.mock(client, 'createEntity').callFn(
       async (entity) => Promise.resolve('0x0000')
     );
+  });
+
+  describe('.fromType', () => {
+
+    context('with `Annotation`', () => {
+
+      it('returns an `Rlay_Annotation` instance', () => {
+        const result = testObj.fromType('Annotation', {}, '0x01');
+        assert.equal(result instanceof Rlay_Annotation, true);
+      });
+
+    });
+
+    context('with `AnnotationProperty`', () => {
+
+      it('returns an `Rlay_AnnotationProperty` instance', () => {
+        const result = testObj.fromType('AnnotationProperty', {}, '0x01');
+        assert.equal(result instanceof Rlay_AnnotationProperty, true);
+      });
+
+    });
+
+    context('with `Class`', () => {
+
+      it('returns an `Rlay_Class` instance', () => {
+        const result = testObj.fromType('Class', {}, '0x01');
+        assert.equal(result instanceof Rlay_Class, true);
+      });
+
+    });
+
+    context('with `ClassAssertion`', () => {
+
+      it('returns an `Rlay_ClassAssertion` instance', () => {
+        const result = testObj.fromType('ClassAssertion', {}, '0x01');
+        assert.equal(result instanceof Rlay_ClassAssertion, true);
+      });
+
+    });
+
+    context('with `DataProperty`', () => {
+
+      it('returns an `Rlay_DataProperty` instance', () => {
+        const result = testObj.fromType('DataProperty', {}, '0x01');
+        assert.equal(result instanceof Rlay_DataProperty, true);
+      });
+
+    });
+
+    context('with `DataPropertyAssertion`', () => {
+
+      it('returns an `Rlay_DataPropertyAssertion` instance', () => {
+        const result = testObj.fromType('DataPropertyAssertion', {}, '0x01');
+        assert.equal(result instanceof Rlay_DataPropertyAssertion, true);
+      });
+
+    });
+
+    context('with `ObjectProperty`', () => {
+
+      it('returns an `Rlay_ObjectProperty` instance', () => {
+        const result = testObj.fromType('ObjectProperty', {}, '0x01');
+        assert.equal(result instanceof Rlay_ObjectProperty, true);
+      });
+
+    });
+
+    context('with `ObjectPropertyAssertion`', () => {
+
+      it('returns an `Rlay_ObjectPropertyAssertion` instance', () => {
+        const result = testObj.fromType('ObjectPropertyAssertion', {}, '0x01');
+        assert.equal(result instanceof Rlay_ObjectPropertyAssertion, true);
+      });
+
+    });
+
+    context('with `Individual`', () => {
+
+      it('returns an `Rlay_Individual` instance', () => {
+        const result = testObj.fromType('Individual', {}, '0x01');
+        assert.equal(result instanceof Rlay_Individual, true);
+      });
+
+    });
+
   });
 
   describe('.fromSchema', () => {

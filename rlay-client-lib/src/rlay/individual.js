@@ -7,10 +7,6 @@ const schemaTypeMapping = {
 };
 
 class Rlay_Individual extends Entity {
-  static prepareRlayFormat (params) {
-    return Object.assign(params, { type: this.type })
-  }
-
   static async create (properties = {}) {
     const propertyKeys = Object.keys(properties);
     const propertyEntityPromises = [];
@@ -36,8 +32,5 @@ class Rlay_Individual extends Entity {
     return super.create(entityValue);
   }
 }
-
-Rlay_Individual.type = 'Individual';
-Rlay_Individual.fields = [];
 
 module.exports = Rlay_Individual;

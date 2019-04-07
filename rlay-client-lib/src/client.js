@@ -46,8 +46,14 @@ class Client {
 
   async findEntityByCID (cid) {
     return this.readLimit(async () => {
-      return this.rlay.retrieve(this.web3, cid, { backend: this.config.backend });
-    })
+      return this.web3.rlay.experimentalGetEntity(cid, { backend: this.config.backend });
+    });
+  }
+
+  async findEntityByCypher (query) {
+    return this.readLimit(async () => {
+      return this.web3.rlay.experimentalNeo4jQuery(query, { backend: 'myneo4j' });
+    });
   }
 
   initConfig (config) {

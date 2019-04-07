@@ -11,7 +11,6 @@ class EntityFactoryInterface extends EntityInterface {
   }
 
   static prepareRlayFormat (params = {}) {
-    if (!this.fields) return new Error(`Fields not set for ${this}`);
     const format = { };
     this.fields.forEach(field => {
       format[field] = (
@@ -26,10 +25,22 @@ class EntityFactoryInterface extends EntityInterface {
     if (typeof cid === 'string') {
       const start = Date.now();
       logger.debug(`Finding Entity (${start}) ...`);
-      const resultCID = await this.client.findEntityByCID(cid);
+      const result = await this.client.findEntityByCID(cid);
       logger.debug(`Finding Entity Result (${start} -> ${cid}) in ${Date.now() - start}ms`);
-      return new this(this.client, {}, resultCID);
+      if (result !== null) {
+        return this.client.entityMetaFactory.fromType(result.type, result, cid);
+      }
+      return null;
     }
+  }
+
+  static get intermediate () {
+    // If `_foo` is inherited or doesn't exist yet, treat it as `undefined`
+    return this.hasOwnProperty('_intermediate') ? this._intermediate : void 0;
+  }
+
+  static set intermediate (intermediate) {
+    this._intermediate = intermediate;
   }
 
   static get client () {

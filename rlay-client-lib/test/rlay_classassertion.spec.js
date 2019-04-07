@@ -8,6 +8,11 @@ const { UnknownEntityError } = require('../src/errors');
 let client;
 const testObj = Rlay_ClassAssertion;
 const testObjType = 'ClassAssertion';
+const defaultPayload = {
+  annotations: [],
+  subject: '0x00',
+  type: testObjType,
+};
 
 describe('Rlay_ClassAssertion', () => {
 
@@ -31,11 +36,8 @@ describe('Rlay_ClassAssertion', () => {
     assert.equal(testObj.prototype instanceof Entity, true);
   });
 
-  it('should have its properties correctly defined', () => {
+  it('should have `.client` defined', () => {
     assert.equal(testObj.client instanceof Client, true);
-    assert.equal(testObj.fields instanceof Array, true);
-    assert.equal(testObj.fieldsDefault instanceof Object, true);
-    assert.equal(testObj.type, testObjType);
   });
 
   describe('static .create', () => {
@@ -58,10 +60,7 @@ describe('Rlay_ClassAssertion', () => {
     });
 
     it('should call `client.createEntity` with the correct payload', async () => {
-      const target = JSON.stringify({
-        subject: '0x00',
-        type: testObjType
-      });
+      const target = JSON.stringify(defaultPayload);
       assert.equal(JSON.stringify(callArg), target);
     });
 
@@ -80,12 +79,7 @@ describe('Rlay_ClassAssertion', () => {
       });
 
       it ('should use base defaults', async () => {
-        const target = JSON.stringify({
-          subject: '0x00',
-          property: undefined,
-          target: undefined,
-          type: testObjType
-        });
+        const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       })
 
@@ -99,12 +93,7 @@ describe('Rlay_ClassAssertion', () => {
       });
 
       it('should use base defaults', async () => {
-        const target = JSON.stringify({
-          subject: '0x00',
-          property: undefined,
-          target: undefined,
-          type: testObjType
-        });
+        const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       });
 

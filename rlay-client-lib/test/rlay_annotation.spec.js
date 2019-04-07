@@ -8,6 +8,10 @@ const { UnknownEntityError } = require('../src/errors');
 let client;
 const testObj = Rlay_Annotation;
 const testObjType = 'Annotation';
+const defaultPayload = {
+  annotations: [],
+  type: testObjType
+};
 
 describe('Rlay_Annotation', () => {
 
@@ -31,11 +35,8 @@ describe('Rlay_Annotation', () => {
     assert.equal(testObj.prototype instanceof Entity, true);
   });
 
-  it('should have its properties correctly defined', () => {
+  it('should have `.client` defined', () => {
     assert.equal(testObj.client instanceof Client, true);
-    assert.equal(testObj.fields instanceof Array, true);
-    assert.equal(testObj.fieldsDefault, undefined);
-    assert.equal(testObj.type, testObjType);
   });
 
   describe('static .create', () => {
@@ -84,9 +85,7 @@ describe('Rlay_Annotation', () => {
       });
 
       it ('should use base defaults', async () => {
-        const target = JSON.stringify({
-          type: testObjType
-        });
+        const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       })
 
@@ -100,9 +99,7 @@ describe('Rlay_Annotation', () => {
       });
 
       it('should use base defaults', async () => {
-        const target = JSON.stringify({
-          type: testObjType
-        });
+        const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       });
 

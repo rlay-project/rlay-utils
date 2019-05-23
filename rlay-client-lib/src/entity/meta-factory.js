@@ -56,7 +56,8 @@ class EntityMetaFactory {
       newClass[newClassName].fields = this.client.Rlay_ObjectPropertyAssertion.fields;
       newClass[newClassName].fieldsDefault = { subject: '0x00', property: entity.cid };
     } else {
-      return new Error(`Can not create Entity Class from entity with type: ${entity.type}`);
+      return undefined
+      //return new Error(`Can not create Entity Class from entity with type: ${entity.type}`);
     }
 
     newClass[newClassName].client = this.client;

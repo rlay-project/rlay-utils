@@ -32,6 +32,7 @@ describe('Rlay_Individual', () => {
     simple.mock(client, 'createEntity').callFn(
       async () => Promise.resolve('0x0000')
     );
+    /*
     simple.mock(client, 'findEntityByCID').callFn(
       async () => Promise.resolve({
         type: 'DataProperty',
@@ -43,6 +44,7 @@ describe('Rlay_Individual', () => {
         superDataPropertyExpression: [] }
       )
     );
+    */
   });
 
   it('should inherit `Entity`', () => {
@@ -185,6 +187,35 @@ describe('Rlay_Individual', () => {
       assert.equal(callArg.subject, instance.cid);
     });
 
+  });
+
+  describe('.fetch', () => {
+
+    beforeEach(async () => {
+      result = await testObj.find(
+        '0x019680031b20db6129844ab16f3eef12d155d910ac204849e984c7770ced6daf60d35bcc5e40'
+      );
+    });
+
+    it('does', async () => {
+      //console.log(client.schema);
+      await result.fetch();
+      delete result.client;
+      console.log(result.type);
+      const dpa = result.annotations[0];
+      await dpa.fetch();
+      delete dpa.client;
+      const dp = dpa.property;
+      await dp.fetch();
+      delete dp.client;
+      const a1 = dp.annotations[0];
+      const a2 = dp.annotations[1];
+      await Promise.all([a1.fetch(), a2.fetch()]);
+      delete a1.client;
+      delete a2.client;
+      console.log(a1);
+      console.log(a2);
+    });
   });
 
 });

@@ -1,4 +1,4 @@
-module.exports = {
+const intermediate = {
   "kinds": [
     {
       "name": "Class",
@@ -620,3 +620,5 @@ module.exports = {
     }
   ]
 }
+
+module.exports = intermediate;

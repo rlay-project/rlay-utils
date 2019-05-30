@@ -34,6 +34,31 @@ The input and output information can be controlled via the following options:
 - **`--schema-dir`**: The directory `rlay-generate` looks for the schema `.js` files. Default: `./schema`
 - **`--client-path`**: The location `rlay-generate` writes the generated rlay client file to. Default: `./generated/rlay-client/index.js`
 
+#### Usage
+
+You can then `require` the generated file in your application. Example:
+
+```javascript
+const defaultClient = require('./generated/rlay-client'); // for the default client
+const { getClient } = require('./generated/rlay-client'); // for configuring your own custom client
+
+const customClient = getClient({ ...config });
+// calling getClient({ ...config }) anywhere else in your code with the same config will always return the same instance.
+// You can create as many custom clients as you like
+```
+
+Example of a `{ ...config }`:
+
+```javascript
+{
+  address: '0xc02345a911471fd46c47c4d3c2e5c85f5ae93d13',
+  backend: 'myneo4j',
+  RpcUrl: 'http://localhost:8546',
+  storeLimit: 50,
+  readLimit: 50
+}
+```
+
 #### Schema file
 
 A *schema `.js` file`* is a `.js` file that exports the following interface:

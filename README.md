@@ -26,7 +26,7 @@ Rlay Utils exposes the following commands:
 
 ### `rlay-generate`
 
-`rlay-generate` takes two inputs, (1) the output of `rlay-seed` stored as a `.json` and (2) the path to the schema folder that stores the schema `.js` files, and generates a `.js` file that exports the instantiated custom rlay client.
+`rlay-generate` takes two inputs, (1) the output of `rlay-seed` stored as a `.json` and (2) the path to the schema folder that stores the *schema `.js` files*, and generates a `.js` file that exports the instantiated custom rlay client.
 
 The input and output information can be controlled via the following options:
 
@@ -34,6 +34,14 @@ The input and output information can be controlled via the following options:
 - **`--schema-dir`**: The directory `rlay-generate` looks for the schema `.js` files. Default: `./schema`
 - **`--client-path`**: The location `rlay-generate` writes the generated rlay client file to. Default: `./generated/rlay-client/index.js`
 
-The default location
+#### Schema file
+
+A *schema `.js` file`* is a `.js` file that exports the following interface:
+
+```
+{ classes: [Function], dataProperties: [Function], objectProperties: [Function] }
+```
+
+Where `Function` returns an Object with payloads like such `{ payloadId1: { payload1 }, payloadId2: { payload2 } }`. Note that the payload keys like `payloadId1` must not contain symbols that are prohibited in JS func names e.g. `/`, etc.
 
 ### `rlay-sync-redis-search`

@@ -8,15 +8,23 @@ import Generator from './generator.js';
 const program = require("yargs")
   .env()
   .option("seeded-schema", {
-    describe: "Relative path to file that contains the seeded schema CIDs"
+    describe: "relative path to file that contains the seeded schema cids"
+  })
+  .option("schema-dir", {
+    describe: "relative path to folder that contains the schema .js files"
+  })
+  .option("client-path", {
+    describe: "relative path to file that exports generated rlay client"
   })
   .default("seeded-schema", "./build/schema/seed.json")
+  .default("schema-dir", "./schema")
+  .default("client-path", "./generated/rlay-client/index.js")
   .argv;
 
 // init required variables
 const schemas = {};
 const assertions = [];
-const schemaPath = path.join(process.cwd(), './schema');
+const schemaPath = path.join(process.cwd(), program.schemaDir);
 const seededSchemaFilePath = path.join(process.cwd(), program.seededSchema);
 const seededSchema = require(seededSchemaFilePath);
 
@@ -35,13 +43,12 @@ const addAssertions = (fileKey, _assertions) => {
 }
 
 // `require()` all schema files
-// It assumes right now that,
-// (1) all schema files are in project root /schema
-// For the lower part of this generate command to work, it also assumes that
-// (2) all files in /schema are proper .js files
-// (3) all .js files export
+// For the lower part of this generate command to work, it assumes that
+// (1) all files in /schema are proper .js files
+// (2) all .js files export
 //     { classes: [Function], dataProperties: [Function], objectProperties: [Function] }
 // TODO: check that name does not contain symbols that are prohibited in JS func names e.g. `/`, etc.
+if (!fs.existsSync(schemaPath)) throw new Error(`${schemaPath} does not exist`);
 fs.readdirSync(schemaPath).forEach(function(file) {
   // schemas[file-name.js -> file-name]
   schemas[file.split('.').shift()] = require(path.join(schemaPath, file));
@@ -58,7 +65,11 @@ const source = Generator.generate(
   JSON.stringify(assertions)
 );
 
-const generatedDir = path.join(process.cwd(), './generated/rlay-client/');
-const generatedFile = path.join(generatedDir, './index.js');
+const clientPathSplit = program.clientPath.split('/');
+const clientPathFile = './' + clientPathSplit.pop();
+const clientPathDir = clientPathSplit.join('/') + '/';
+
+const generatedDir = path.join(process.cwd(), clientPathDir);
+const generatedFile = path.join(generatedDir, clientPathFile);
 fs.ensureDirSync(generatedDir);
 fs.writeFileSync(generatedFile, source, 'utf8');

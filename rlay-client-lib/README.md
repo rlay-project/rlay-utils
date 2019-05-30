@@ -4,6 +4,12 @@ Provides a high-level interface (ORM) for your application, based on your schema
 
 This library exposes `Rlay` native `Entities` such as `Rlay_Class`, `Rlay_ClassAssertion`, `Rlay_Individual`, etc. through the client. When the client is generated and constructed with `rlay-generated`, the client will also expose the application specific `Entities` e.g. `HTTPRequestClass`, etc. These application specific `Entities` can
 
+## Requirements
+
+```
+npm install -g @rlay/utils
+```
+
 ## Usage
 
 ### `rlay-generate`
@@ -12,7 +18,7 @@ The default behavior for using the Rlay Client Library is, by using `rlay-genera
 creates `generated/rlay-client/index.js` in the root of the project. `generated/rlay-client/index.js` exposes the initialized `Client` instance, ready for usage.
 
 ```javascript
-const client = require('/generated/rlay-client');
+const client = require('./generated/rlay-client');
 
 // Create a new Individual
 client.Individual.create();
@@ -28,7 +34,7 @@ client.Entity.find('123...789');
 The properties of an individual can only be specified at the creation-time of the `Individual` and are like any other operations immutable.
 
 ```javascript
-const client = require('/generated/rlay-client');
+const client = require('./generated/rlay-client');
 
 const properties = {
   nameOfApplicationSpecificEntity: true,
@@ -44,7 +50,7 @@ client.Individual.create(properties);
 Once the individual is created (with or without properties) assertions about it can be made.
 
 ```javascript
-const client = require('/generated/rlay-client');
+const client = require('./generated/rlay-client');
 
 const properties = {
   nameOfApplicationSpecificEntity: true,
@@ -67,7 +73,7 @@ indi.assert(assertions);
 Once an entity is created it can be found by its CID.
 
 ```javascript
-const client = require('/generated/rlay-client');
+const client = require('./generated/rlay-client');
 
 // Find an entity
 const result1 = client.Entity.find('individual_CID');

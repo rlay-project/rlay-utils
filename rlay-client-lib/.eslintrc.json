@@ -4,8 +4,7 @@
         "node": true
     },
     "extends": [
-      "eslint:recommended",
-      "oclif"
+      "eslint:recommended"
     ],
     "parserOptions": {
         "ecmaVersion": 2018,

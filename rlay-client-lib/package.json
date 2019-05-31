@@ -9,10 +9,12 @@
     "docs": "jsdoc src/* -d ./docs"
   },
   "dependencies": {
+    "@rlay/ontology": "0.1.0-alpha.1",
     "@rlay/web3-rlay": "^0.1.12",
     "mixwith": "^0.1.1",
     "object-path": "^0.11.4",
     "p-limit": "^2.1.0",
+    "verror": "^1.10.0",
     "web3": "1.0.0-beta.35",
     "winston": "^3.2.1"
   },

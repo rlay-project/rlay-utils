@@ -3,6 +3,7 @@ const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
 const EntityMetaFactory = require('./entity/meta-factory');
 const RlayEntities = require('./rlay');
+const RlayOntology = require('@rlay/ontology');
 
 class Config {
   constructor() {
@@ -34,6 +35,7 @@ class Client {
     this.web3.eth.defaultAccount = this.config.address;
 
     this.rlay = rlay;
+    this.rlayOntology = RlayOntology;
     this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
     this.readLimit = pLimit(this.config.readLimit);
@@ -65,6 +67,10 @@ class Client {
     });
   }
 
+  getEntityCid (payload) {
+    return this.rlayOntology.getEntityCid(payload);
+  }
+
   initConfig (config) {
     Object.assign(this.config, config);
   }
@@ -87,8 +93,7 @@ class Client {
         // convert to proper Rlay Entity
         this.schema[assertion.key] = this.entityMetaFactory.fromType(
           this.schema[assertion.key].type,
-          this.schema[assertion.key],
-          this.schema[assertion.key].cid,
+          this.schema[assertion.key]
         );
       }
     });

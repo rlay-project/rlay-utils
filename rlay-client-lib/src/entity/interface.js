@@ -1,6 +1,7 @@
 const { UnknownEntityError } = require('../errors');
 const logger = require('../logger')(__filename);
 const objectPath = require('object-path');
+const VError = require('verror');
 
 /**
  * Interface Class for Entity instances (non-static methods)
@@ -16,13 +17,26 @@ class EntityInterface {
    *
    * @param {Client} client - a `Client` instance
    * @param {object} payload - the `EntityObject` that the `CID` represents
-   * @param {string} cid - the `CID` of the `Entity`
    */
-  constructor (client, payload, cid) {
+  constructor (client, payload) {
     this.client = client;
+    this._cidRemote = payload.cid;
     this.payload = payload;
     this.type = this.payload.type;
-    this.cid = cid;
+    try {
+      this.cid = client.getEntityCid(this.payload);
+    } catch (e) {
+      throw new VError(e, 'Invalid Payload: "%s"', JSON.stringify(this.payload));
+    }
+  }
+
+  set payload (payload) {
+    Reflect.deleteProperty(payload, 'cid');
+    this._payload = payload;
+  }
+
+  get payload () {
+    return this._payload;
   }
 
   /**

@@ -24,33 +24,17 @@ describe('EntityInterface', () => {
     })
   });
 
+  describe('.cid', () => {
+    it('returns the CID of the entity, without a roundtrip', () => {
+      assert.equal(target.cid,
+        '0x019c80031b202a4f5104920c65b27a0fd9c17d0f2a3a9239a0277c0784b5666cbc067656f487');
+    });
+  });
+
   describe('.fetch', () => {
     it('calls out to the client to fetch the entity', async () => {
-      result = await target.fetch();
-      console.log(target);
-      console.log(result);
+      await target.fetch();
       assert.equal(mockClient.findEntityByCID.callCount, 1);
-    });
-
-    context('findEntityByCID=SUCCESS', () => {
-      it('returns a `TestEntity` instance', async () => {
-        result = await TestEntity.find('123');
-        assert.equal(result instanceof TestEntity, true);
-      });
-    });
-
-    context('findEntityByCID=NONE', () => {
-      it('returns null', async () => {
-        result = await TestEntity.find('CID_NOT_FOUND');
-        assert.equal(result, null);
-      });
-    });
-
-    context('findEntityByCID=FAILURE', () => {
-      it('returns an `Error`', async () => {
-        TestEntity.find('CID_CONNECTION_ERROR').
-          catch(result => assert.equal(result instanceof Error, true))
-      });
     });
   });
 });

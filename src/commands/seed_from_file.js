@@ -15,29 +15,32 @@ const buildProgresssBar = total => {
   });
 };
 
-const mainWithConfig = async () => {
-  const program = require("yargs")
-    .env()
-    .option("from-address", {
-      describe: "Send the transactions from [address]"
-    })
-    .option("backend", {
-      describe: "The name of the Rlay backend to use on the RPC"
-    })
-    .option("rpc-url", {
-      describe: "URL of JSON-RPC endpoint [url]"
-    })
-    .default("rpc-url", "http://localhost:8546")
-    .option("input", {
-      demandOption: true
-    }).argv;
+const mainWithConfig = async cfg => {
+  let config = cfg;
+  if (!cfg) {
+    const program = require("yargs")
+      .env()
+      .option("from-address", {
+        describe: "Send the transactions from [address]"
+      })
+      .option("backend", {
+        describe: "The name of the Rlay backend to use on the RPC"
+      })
+      .option("rpc-url", {
+        describe: "URL of JSON-RPC endpoint [url]"
+      })
+      .default("rpc-url", "http://localhost:8546")
+      .option("input", {
+        demandOption: true
+      }).argv;
 
-  const config = {
-    address: program.fromAddress,
-    backend: program.backend,
-    rpcUrl: program.rpcUrl,
-    inputFilePath: path.resolve(program.input)
-  };
+    config = {
+      address: program.fromAddress,
+      backend: program.backend,
+      rpcUrl: program.rpcUrl,
+      inputFilePath: path.resolve(program.input)
+    };
+  }
 
   const web3 = new Web3(config.rpcUrl);
   rlay.extendWeb3WithRlay(web3);
@@ -159,6 +162,8 @@ const mainWithConfig = async () => {
       });
     });
 
+    // we also need to track the last promise that was run so we can wait for the last promise after the queue became empty
+    let latestPromise = null;
     const addEntity = async (name, entity) => {
       if (resolveRefName(name)) {
         return resolveRefName(name);
@@ -199,18 +204,28 @@ const mainWithConfig = async () => {
       } else {
         // add all the mising entities to the queue, and then the entity itself
         missingReferences.forEach(refName => {
-          storeLimit.add(() => addEntity(refName, contents[refName]));
+          storeLimit.add(() => {
+            latestPromise = addEntity(refName, contents[refName]);
+            return latestPromise;
+          });
         });
-        storeLimit.add(() => addEntity(name, entity));
+        storeLimit.add(() => {
+          latestPromise = addEntity(name, entity);
+          return latestPromise;
+        });
         return Promise.resolve(null);
       }
     };
 
     Object.keys(contents).forEach(async name => {
       const entity = contents[name];
-      storeLimit.add(() => addEntity(name, entity));
+      storeLimit.add(() => {
+        latestPromise = addEntity(name, entity);
+        return latestPromise;
+      });
     });
     await storeLimit.onEmpty();
+    await latestPromise;
 
     return nameCidMap;
   };
@@ -240,7 +255,7 @@ const mainWithConfig = async () => {
     }
     if (version === "2") {
       return {
-        includeImportsInOutput: configScript.includeImportsInOutput,
+        includeImportsInOutput: fileContents.includeImportsInOutput,
         entities: fileContents.entities,
         imports: fileContents.imports
       };
@@ -278,9 +293,18 @@ const mainWithConfig = async () => {
       });
     }
 
-    console.log(JSON.stringify(nameCidMap, null, 4));
+    return nameCidMap;
   };
-  await main(config);
+  return main(config);
 };
 
-mainWithConfig();
+if (require.main === module) {
+  // file used as executable; running main function
+  mainWithConfig().then(nameCidMap => {
+    console.log(JSON.stringify(nameCidMap, null, 4));
+  });
+}
+
+module.exports = {
+  mainWithConfig
+};

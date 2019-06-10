@@ -6,6 +6,7 @@ const Web3 = require("web3");
 const pQueue = require("p-queue");
 const rlay = require("@rlay/web3-rlay");
 const ProgressBar = require("progress");
+const debug = require("debug")("rlay-seed");
 
 const buildProgresssBar = total => {
   return new ProgressBar(`Seeding [:bar] :current/:total :etas`, {
@@ -97,6 +98,7 @@ const mainWithConfig = async cfg => {
     const progress = buildProgresssBar(Object.keys(contents).length);
 
     const storeEntity = async entity => {
+      debug("storeEntity", entity);
       const normalStore = entity => {
         const options = {
           gas: 1000000

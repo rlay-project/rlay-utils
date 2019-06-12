@@ -31,4 +31,34 @@ describe("rlay-seed", () => {
     const output = JSON.parse(cmdResult.stdout);
     assert.equal(3, Object.keys(output).length);
   });
+
+  it("correctly seeds with a seed file with imports (not included in output)", () => {
+    const inputPath = path.join(__dirname, "./data/with_import.js");
+    const cmdResult = childProcess.spawnSync(
+      rlaySeedCmdPath,
+      ["--input", inputPath, "--backend", "myneo4j"],
+      {
+        encoding: "utf-8"
+      }
+    );
+
+    assert.equal(0, cmdResult.status, "should run successfully");
+    const output = JSON.parse(cmdResult.stdout);
+    assert.equal(1, Object.keys(output).length);
+  });
+
+  it("correctly seeds with a seed file with imports (included in output)", () => {
+    const inputPath = path.join(__dirname, "./data/with_import_output.js");
+    const cmdResult = childProcess.spawnSync(
+      rlaySeedCmdPath,
+      ["--input", inputPath, "--backend", "myneo4j"],
+      {
+        encoding: "utf-8"
+      }
+    );
+
+    assert.equal(0, cmdResult.status, "should run successfully");
+    const output = JSON.parse(cmdResult.stdout);
+    assert.equal(4, Object.keys(output).length);
+  });
 });

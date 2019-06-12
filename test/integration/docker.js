@@ -45,18 +45,18 @@ const dockerSetup = () => {
 
   const waitForRlayClient = waitPort({
     kost: "127.0.0.1",
-    port: rlayClientPort
-    // output: "silent"
+    port: rlayClientPort,
+    output: "silent"
   });
   const waitForNeo4j = waitPort({
     host: "127.0.0.1",
-    port: 7474
-    // output: "silent"
+    port: 7474,
+    output: "silent"
   });
   return Promise.all([waitForRlayClient, waitForNeo4j])
     .then(() => {
       // even after the ports are available the nodes need a bit of time to get online
-      return asyncSleep(30000);
+      return asyncSleep(5000);
     })
     .then(() => ({
       rlayClientRpcEndpoint: `http://localhost:${rlayClientPort}`

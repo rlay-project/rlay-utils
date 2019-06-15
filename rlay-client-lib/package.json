@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@rlay/ontology": "0.1.0-alpha.1",
-    "@rlay/web3-rlay": "^0.1.12",
+    "@rlay/web3-rlay": "^0.1.14",
     "mixwith": "^0.1.1",
     "object-path": "^0.11.4",
     "p-limit": "^2.1.0",

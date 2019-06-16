@@ -1,11 +1,22 @@
 const childProcess = require("child_process");
 const path = require("path");
-const waitPort = require("wait-port");
+const promiseRetry = require("promise-retry");
+const jayson = require("jayson/promise");
 
 const composeFilePath = path.join(__dirname, "./docker/docker-compose.yml");
 
-const asyncSleep = ms => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+const waitForRpc = port => {
+  return promiseRetry(function(retry, number) {
+    if (process.env.TEST_STDOUT) {
+      console.log("RPC connect attempt number", number);
+    }
+
+    const client = jayson.client.http({
+      port
+    });
+
+    return client.request("rlay_version", []).catch(retry);
+  });
 };
 
 const dockerSetup = () => {
@@ -33,34 +44,11 @@ const dockerSetup = () => {
   });
 
   const rlayClientPort = 8546;
+  const waitForRlayClient = waitForRpc(rlayClientPort);
 
-  if (process.env.CI) {
-    console.log(
-      "HACK: detecting port doesn't work well in CI, so instead we wait a fixed time"
-    );
-    return asyncSleep(30000).then(() => ({
-      rlayClientRpcEndpoint: `http://localhost:${rlayClientPort}`
-    }));
-  }
-
-  const waitForRlayClient = waitPort({
-    kost: "127.0.0.1",
-    port: rlayClientPort,
-    output: "silent"
-  });
-  const waitForNeo4j = waitPort({
-    host: "127.0.0.1",
-    port: 7474,
-    output: "silent"
-  });
-  return Promise.all([waitForRlayClient, waitForNeo4j])
-    .then(() => {
-      // even after the ports are available the nodes need a bit of time to get online
-      return asyncSleep(5000);
-    })
-    .then(() => ({
-      rlayClientRpcEndpoint: `http://localhost:${rlayClientPort}`
-    }));
+  return Promise.all([waitForRlayClient]).then(() => ({
+    rlayClientRpcEndpoint: `http://localhost:${rlayClientPort}`
+  }));
 };
 
 const dockerTeardown = () => {
@@ -76,7 +64,6 @@ const dockerTeardown = () => {
 };
 
 module.exports = {
-  asyncSleep,
   dockerSetup,
   dockerTeardown
 };

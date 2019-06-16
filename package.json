@@ -41,7 +41,7 @@
     "redis": "^2.8.0",
     "simple-jsonrpc-js": "0.0.10",
     "web3": "^1.0.0-beta.35",
-    "ws": "^6.1.0",
+    "ws": "^7.0.0",
     "yargs": "^12.0.2"
   },
   "devDependencies": {

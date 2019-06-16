@@ -11,13 +11,13 @@ const mapValues = require("lodash.mapvalues");
 const ontology = require("@rlay/ontology");
 const debug = require("debug")("rlay-seed");
 
-const {
+import {
   calculateEntityTreeReferences,
   isSpecialField,
   resolveEntityTreeReferences,
   resolveThunk,
   calculateDependencyCount
-} = require("./seed/utils");
+} from "./seed/utils";
 /**
  * Get seed config from a ".json" file.
  */

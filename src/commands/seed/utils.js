@@ -257,7 +257,7 @@ const calculateDependencyCount = entitiesIn => {
 
 class ReferenceNameNotFoundError extends Error {}
 
-module.exports = {
+export {
   ReferenceNameNotFoundError,
   calculateEntityTreeReferences,
   isSpecialField,

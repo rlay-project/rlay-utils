@@ -1,4 +1,9 @@
 const ontology = require("@rlay/ontology");
+const debug = require("debug")("rlay-seed:utils");
+
+const resolveThunk = thunk => {
+  return typeof thunk === "function" ? thunk() : thunk;
+};
 
 /**
  * Check wether a entity field is a "special" field.
@@ -22,7 +27,7 @@ const isSpecialField = (entity, field) => {
 };
 
 /**
- * Takes a map where the keys are entity reference names, and the values are entities.
+ * Takes a map where the keys are entity reference names, and the values are either entities or CIDs.
  * The entities can have references to other entities in the form of`*<REFERENCE_NAME>` in place
  * of CIDs.
  *
@@ -66,6 +71,17 @@ const calculateEntityTreeReferences = entityTree => {
     }
 
     const entity = entityTree[normalizedRefName];
+    if (!entity) {
+      throw new ReferenceNameNotFoundError(
+        `Reference *${normalizedRefName} was not found.`
+      );
+    }
+
+    // value is already a CID
+    if (typeof entity === "string" && entity.startsWith("0x")) {
+      return entity;
+    }
+
     if (!entityContainsReferences(entity)) {
       const cid = ontology.getEntityCid(entity);
       cidMap[normalizedRefName] = cid;
@@ -73,6 +89,7 @@ const calculateEntityTreeReferences = entityTree => {
     }
 
     const derefEntity = replaceReferencesWithCids(entityTree, entity);
+    debug("calculateEntityCid -> getEntityCid", derefEntity);
     const cid = ontology.getEntityCid(derefEntity);
     cidMap[normalizedRefName] = cid;
     return cid;
@@ -117,10 +134,66 @@ const calculateEntityTreeReferences = entityTree => {
 };
 
 /**
+ * Resolves all the references in an entity to their CIDs.
+ *
+ * @param {object} entity The entity with references.
+ * @param {object} nameCidMap name:cid mapping.
+ *
+ * @returns {object} The entity with CIDs.
+ */
+const resolveEntityReferences = (entity, nameCidMap) => {
+  const newEntity = Object.assign({}, entity);
+
+  Object.keys(newEntity).forEach(field => {
+    if (isSpecialField(newEntity, field)) {
+      return;
+    }
+
+    const fieldVal = newEntity[field];
+    if (Array.isArray(fieldVal)) {
+      fieldVal.forEach((val, i) => {
+        if (val.startsWith("*")) {
+          newEntity[field][i] = nameCidMap[val.substring(1)];
+        }
+      });
+    } else {
+      if (fieldVal.startsWith("*")) {
+        newEntity[field] = nameCidMap[fieldVal.substring(1)];
+      }
+    }
+  });
+
+  return newEntity;
+};
+
+/**
+ * Resolve all references in an entity tree (name:entity map) to their CIDs.
+ */
+const resolveEntityTreeReferences = (entityTree, nameCidMap) => {
+  const resolvedEntityTree = {};
+
+  Object.keys(entityTree).forEach(key => {
+    const entity = entityTree[key];
+    const resolvedEntity = resolveEntityReferences(entity, nameCidMap);
+    resolvedEntityTree[key] = resolvedEntity;
+  });
+
+  return resolvedEntityTree;
+};
+
+/**
  * Takes an array of entities, and returns an array of entities
  * sorted by their number of transitive dependencies (least dependencies first).
  */
 const sortByDependencyCount = entitiesIn => {
+  const entitiesWithCount = calculateDependencyCount(entitiesIn);
+  entitiesWithCount.sort((a, b) => a.depCount - b.depCount);
+
+  const entities = entitiesWithCount.map(n => n.entity);
+  return entities;
+};
+
+const calculateDependencyCount = entitiesIn => {
   const countMap = {};
   const cidEntityMap = {};
 
@@ -160,22 +233,37 @@ const sortByDependencyCount = entitiesIn => {
     return count;
   };
 
+  const cleanEntity = entity => {
+    const cleanEntity = Object.assign({}, entity);
+    delete cleanEntity.refName;
+
+    debug("cleanEntity", cleanEntity);
+    return cleanEntity;
+  };
+
   entitiesIn.forEach(entity => {
-    const cid = ontology.getEntityCid(entity);
+    const cid = ontology.getEntityCid(cleanEntity(entity));
     cidEntityMap[cid] = entity;
   });
 
   const entitiesWithCount = entitiesIn.map(entity => ({
-    entity,
+    entity: cleanEntity(entity),
+    refName: entity.refName,
     depCount: countDependencies(entity)
   }));
-  entitiesWithCount.sort((a, b) => a.depCount - b.depCount);
 
-  const entities = entitiesWithCount.map(n => n.entity);
-  return entities;
+  return entitiesWithCount;
 };
 
-module.exports = {
+class ReferenceNameNotFoundError extends Error {}
+
+export {
+  ReferenceNameNotFoundError,
   calculateEntityTreeReferences,
-  sortByDependencyCount
+  isSpecialField,
+  resolveEntityReferences,
+  resolveEntityTreeReferences,
+  resolveThunk,
+  sortByDependencyCount,
+  calculateDependencyCount
 };

@@ -20,6 +20,7 @@ const buildConfig = (inFile, outFile) => {
     },
 
     plugins: [
+      hashbang(),
       nodeResolve(),
       babel({
         exclude: "**/node_modules/**",
@@ -30,8 +31,7 @@ const buildConfig = (inFile, outFile) => {
         "process.env.NODE_ENV": JSON.stringify(env)
       }),
       json(),
-      hashbang(),
-      commonjs(),
+      commonjs()
     ]
   };
 

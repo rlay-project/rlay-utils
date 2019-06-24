@@ -30,9 +30,15 @@ const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
   static prepareRlayFormat (params = {}) {
     const format = { };
     this.fields.forEach(field => {
-      format[field] = (
-        params[field] || (this.fieldsDefault || {})[field] || undefined
-      );
+      if (params[field] === undefined) {
+        if ((this.fieldsDefault || {})[field] === undefined) {
+          format[field] = undefined
+        } else {
+          format[field] = (this.fieldsDefault || {})[field]
+        }
+      } else {
+        format[field] = params[field]
+      }
     });
     format.type = this.type;
     return format;

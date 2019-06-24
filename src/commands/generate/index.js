@@ -4,72 +4,69 @@ import fs from 'fs-extra';
 import path from 'path';
 //import esformatter from 'esformatter';
 import Generator from './generator.js';
+import { seedFromFile } from './seedFileUtils.js';
+
+const isNonAssertiveSchemaEntity = (entityObject) => {
+  const green = ['Class', 'DataProperty', 'ObjectProperty'];
+  return green.includes(entityObject.type);
+}
+
+const getFilePath = (pathString) => {
+  let seedFilePath = path.join(process.cwd(), pathString);
+  if (path.isAbsolute(pathString)) {
+    seedFilePath = pathString;
+  }
+  return seedFilePath;
+}
+
+const getFileRequired = (path) => {
+  if (!fs.existsSync(seedFilePath)) throw new Error(`${seedFilePath} does not exist`);
+  return require(path);
+}
 
 const program = require("yargs")
   .env()
-  .option("seeded-schema", {
-    describe: "relative path to file that contains the seeded schema cids"
+  .option("seed-file-output", {
+    describe: "path to the file that contains the output of the rlay-seed command"
   })
-  .option("schema-dir", {
-    describe: "relative path to folder that contains the schema .js files"
+  .option("seed-file", {
+    describe: "path to the file that served as input for the rlay-seed command"
   })
-  .option("client-path", {
-    describe: "relative path to file that exports generated rlay client"
+  .option("output", {
+    describe: "path to the file where the generated rlay client should be written to"
   })
-  .default("seeded-schema", "./build/schema/seed.json")
-  .default("schema-dir", "./schema")
-  .default("client-path", "./generated/rlay-client/index.js")
+  .default("seed-file-output", "./generated/seed.json")
+  .default("seed-file", "./seed.js")
+  .default("output", "./generated/rlay-client/index.js")
   .argv;
 
-// init required variables
-const schemas = {};
-const assertions = [];
-const schemaPath = path.join(process.cwd(), program.schemaDir);
-const seededSchemaFilePath = path.join(process.cwd(), program.seededSchema);
-const seededSchema = require(seededSchemaFilePath);
-
-// init required functions
-const addAssertions = (fileKey, _assertions) => {
-  const green = ['Class', 'DataProperty', 'ObjectProperty'];
-  Object.keys(_assertions).forEach(assertionKey => {
-    if (green.includes(_assertions[assertionKey].type)) {
-      assertions.push({
-        file: fileKey,
-        key: assertionKey,
-        assertion: _assertions[assertionKey]
-      });
-    }
-  })
+// get the actual files for the options or print errors
+//   seed-file
+const seedFilePath = getFilePath(program.seedFile);
+const seedFile = getFileRequired(seedFilePath);
+if (!seedFile.entities) {
+  throw new Error(`{seedFilePath} is not a valid Rlay seed file. Root object must have '.entities' property.`);
 }
+//   seed-file-output
+const seedFileOutputPath = getFilePath(program.seedFileOutput);
+const seededSchema = getFileRequired(seedFileOutputPath);
 
-// `require()` all schema files
-// For the lower part of this generate command to work, it assumes that
-// (1) all files in /schema are proper .js files
-// (2) all .js files export
-//     { classes: [Function], dataProperties: [Function], objectProperties: [Function] }
-// TODO: check that name does not contain symbols that are prohibited in JS func names e.g. `/`, etc.
-if (!fs.existsSync(schemaPath)) throw new Error(`${schemaPath} does not exist`);
-fs.readdirSync(schemaPath).forEach(function(file) {
-  // schemas[file-name.js -> file-name]
-  schemas[file.split('.').shift()] = require(path.join(schemaPath, file));
-});
+const seedFileEntities = seedFromFile(seedFile.entities, seedFile);
 
-Object.keys(schemas).forEach(fileKey => {
-  Object.keys(schemas[fileKey]).forEach(assertionType => {
-    addAssertions(fileKey, schemas[fileKey][assertionType]());
-  });
-});
+const entities = Object.keys(seedFileEntities).
+  map(entityKey => ({ key: entityKey, assertion: seedFile.entities[entityKey] })).
+  filter(e => isNonAssertiveSchemaEntity(e.assertion));
 
 const source = Generator.generate(
   JSON.stringify(seededSchema),
-  JSON.stringify(assertions)
+  JSON.stringify(entities)
 );
 
-const clientPathSplit = program.clientPath.split('/');
+const clientPathSplit = program.output.split('/');
 const clientPathFile = './' + clientPathSplit.pop();
 const clientPathDir = clientPathSplit.join('/') + '/';
 
-const generatedDir = path.join(process.cwd(), clientPathDir);
+const generatedDir = getFilePath(clientPathDir);
 const generatedFile = path.join(generatedDir, clientPathFile);
 fs.ensureDirSync(generatedDir);
 fs.writeFileSync(generatedFile, source, 'utf8');

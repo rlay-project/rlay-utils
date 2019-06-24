@@ -1,6 +1,6 @@
 {
   "name": "@rlay/rlay-client-lib",
-  "version": "0.2.0-pre.5",
+  "version": "0.2.0-pre.6",
   "author": "Michael Hirn <michael.j.hirn@gmail.com>",
   "license": "Apache-2.0",
   "main": "src/client.js",

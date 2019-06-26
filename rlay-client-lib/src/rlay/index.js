@@ -20,18 +20,14 @@ intermediate.kinds.forEach(entity => {
   if (entity.name.includes('Annotation')) {
     classes[className] = class extends Entity{
       static prepareRlayFormat (params = {}) {
-        if (params.value) {
-          params.value = this.client.rlay.encodeValue(params.value);
-        }
+        params.value = this.client.rlay.encodeValue(params.value);
         return super.prepareRlayFormat(params);
       }
     }
   } else if (entity.name.includes('DataProperty')) {
     classes[className] = class extends Entity{
       static prepareRlayFormat (params = {}) {
-        if (params.target) {
-          params.target = this.client.rlay.encodeValue(params.target);
-        }
+        params.target = this.client.rlay.encodeValue(params.target);
         return super.prepareRlayFormat(params);
       }
     }

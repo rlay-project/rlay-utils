@@ -11,7 +11,12 @@ const env = process.env.NODE_ENV;
 const buildConfig = (inFile, outFile) => {
   const config = {
     input: inFile,
-    external: ["react", "react-dom"],
+    external: [
+      'react',
+      'react-dom',
+      'fs',
+      'path'
+    ],
     output: {
       file: outFile,
       format: "cjs",
@@ -51,6 +56,9 @@ const buildConfig = (inFile, outFile) => {
   return config;
 };
 
+
+
+
 const config = [
   buildConfig(
     "./src/commands/seed_from_file.js",
@@ -63,6 +71,10 @@ const config = [
   buildConfig(
     "./src/commands/redis-sync-search.js",
     "./lib/bin/redis-sync-search.js"
+  ),
+  buildConfig(
+    "./src/commands/generate/index.js",
+    "./lib/bin/generate.js"
   )
 ];
 

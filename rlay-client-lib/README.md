@@ -29,6 +29,23 @@ client.Individual.find('123...789');
 client.Entity.find('123...789');
 ```
 
+### Instantiate a new Entity
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.Entity(client, payload);
+```
+
+### Create a new Entity
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.Entity(client, payload);
+await entity.create();
+```
+
 ### Create an Individual with inherent properties aka. properties
 
 The properties of an individual can only be specified at the creation-time of the `Individual` and are like any other operations immutable.
@@ -103,3 +120,11 @@ console.log(result1.nameOfApplicationSpecificEntity !== undefined); // true
   - [ ] documentation
   - [ ] tests
 - [ ] Integration tests
+
+## Testing
+
+All tests are unit tests and do not require a running rlay-client server. All tests are importing the `Rlay MockClient`.
+
+### `Rlay MockClient`
+
+Located at `[./test/mocks/client.js](./tests/mocks/client.js)` it mocks all functions that usually would call out to the rlay-client server.

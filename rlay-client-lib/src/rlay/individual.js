@@ -1,4 +1,6 @@
 const Entity = require('../entity/entity');
+const check = require('check-types');
+const debug = require('debug')('rlayClientLib:Individual');
 
 const schemaTypeMapping = {
   'ClassAssertion': 'class_assertions',
@@ -38,9 +40,11 @@ const findEntityKey = (schema, cid) => {
 
 class Rlay_Individual extends Entity {
   static async create (properties = {}) {
+    const debugMethod = debug.extend('create');
     const propertyKeys = Object.keys(properties);
     const propertyEntityPromises = [];
     const entityValue = {};
+    debugMethod('called with properties %O', properties);
 
     propertyKeys.forEach(propertyName => {
       if (this.client[propertyName]) {
@@ -48,7 +52,10 @@ class Rlay_Individual extends Entity {
       }
     });
 
+    debugMethod('called with property keys %O', propertyKeys);
+
     const propertyEntities = await Promise.all(propertyEntityPromises);
+    debugMethod('created propery entities %O', propertyEntities.map(e => e.payload.class));
 
     // setup `entityValue`
     propertyEntities.forEach(entityInstance => {

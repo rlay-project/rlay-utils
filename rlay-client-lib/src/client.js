@@ -1,4 +1,5 @@
 const Web3 = require('web3');
+const { ClientInterface } = require('./interfaces/client');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
 const EntityMetaFactory = require('./entity/meta-factory');
@@ -19,7 +20,7 @@ class Config {
 /**
  * The `Client`, ORM, and main interface for users
  */
-class Client {
+class Client extends ClientInterface {
 
   /**
    * Create a new Client instance
@@ -27,6 +28,7 @@ class Client {
    * @param {Config} config - The configuration for the client
    */
   constructor (config = {}) {
+    super();
     this.config = new Config();
     this.initConfig(config);
 

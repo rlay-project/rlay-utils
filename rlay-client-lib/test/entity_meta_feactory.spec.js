@@ -1,5 +1,8 @@
+/* eslint-env node, mocha */
 const assert = require('assert');
+const expect = require('chai').expect
 const simple = require('simple-mock')
+const intermediate = require('../src/rlay/intermediate');
 const {
   Rlay_Individual,
   Rlay_Annotation,
@@ -36,87 +39,14 @@ describe('EntityMetaFactory', () => {
 
   describe('.fromType', () => {
 
-    context('with `Annotation`', () => {
-
-      it('returns an `Rlay_Annotation` instance', () => {
-        const result = testObj.fromType('Annotation', {}, '0x01');
-        assert.equal(result instanceof Rlay_Annotation, true);
+    intermediate.kinds.forEach(intermediateKind => {
+      context(`with ${intermediateKind.name}`, () => {
+        it(`returns a Rlay_${intermediateKind.name} instance`, () => {
+          const fn = () => testObj.fromType(intermediateKind.name, {})
+          expect(fn).to.throw(/failed to create new entity/u);
+        });
       });
-
-    });
-
-    context('with `AnnotationProperty`', () => {
-
-      it('returns an `Rlay_AnnotationProperty` instance', () => {
-        const result = testObj.fromType('AnnotationProperty', {}, '0x01');
-        assert.equal(result instanceof Rlay_AnnotationProperty, true);
-      });
-
-    });
-
-    context('with `Class`', () => {
-
-      it('returns an `Rlay_Class` instance', () => {
-        const result = testObj.fromType('Class', {}, '0x01');
-        assert.equal(result instanceof Rlay_Class, true);
-      });
-
-    });
-
-    context('with `ClassAssertion`', () => {
-
-      it('returns an `Rlay_ClassAssertion` instance', () => {
-        const result = testObj.fromType('ClassAssertion', {}, '0x01');
-        assert.equal(result instanceof Rlay_ClassAssertion, true);
-      });
-
-    });
-
-    context('with `DataProperty`', () => {
-
-      it('returns an `Rlay_DataProperty` instance', () => {
-        const result = testObj.fromType('DataProperty', {}, '0x01');
-        assert.equal(result instanceof Rlay_DataProperty, true);
-      });
-
-    });
-
-    context('with `DataPropertyAssertion`', () => {
-
-      it('returns an `Rlay_DataPropertyAssertion` instance', () => {
-        const result = testObj.fromType('DataPropertyAssertion', {}, '0x01');
-        assert.equal(result instanceof Rlay_DataPropertyAssertion, true);
-      });
-
-    });
-
-    context('with `ObjectProperty`', () => {
-
-      it('returns an `Rlay_ObjectProperty` instance', () => {
-        const result = testObj.fromType('ObjectProperty', {}, '0x01');
-        assert.equal(result instanceof Rlay_ObjectProperty, true);
-      });
-
-    });
-
-    context('with `ObjectPropertyAssertion`', () => {
-
-      it('returns an `Rlay_ObjectPropertyAssertion` instance', () => {
-        const result = testObj.fromType('ObjectPropertyAssertion', {}, '0x01');
-        assert.equal(result instanceof Rlay_ObjectPropertyAssertion, true);
-      });
-
-    });
-
-    context('with `Individual`', () => {
-
-      it('returns an `Rlay_Individual` instance', () => {
-        const result = testObj.fromType('Individual', {}, '0x01');
-        assert.equal(result instanceof Rlay_Individual, true);
-      });
-
-    });
-
+    })
   });
 
   describe('.fromSchema', () => {
@@ -150,6 +80,7 @@ describe('EntityMetaFactory', () => {
 
       it('has `.fieldDefaults` set for `class` with its own CID', () => {
         const defaultFields = JSON.stringify({
+          annotations: [],
           subject: '0x00',
           class: rlayClassInstance.cid
         });
@@ -187,6 +118,7 @@ describe('EntityMetaFactory', () => {
 
       it('has `.fieldDefaults` set for `class` with its own CID', () => {
         const defaultFields = JSON.stringify({
+          annotations: [],
           subject: '0x00',
           property: rlayClassInstance.cid
         });
@@ -224,6 +156,7 @@ describe('EntityMetaFactory', () => {
 
       it('has `.fieldDefaults` set for `class` with its own CID', () => {
         const defaultFields = JSON.stringify({
+          annotations: [],
           subject: '0x00',
           property: rlayClassInstance.cid
         });

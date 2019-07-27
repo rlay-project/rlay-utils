@@ -63,7 +63,7 @@ const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
    * @param {boolean} fetchBoolean - If .fetch() should be called on the new entity
    * @returns {Entity|null} - Return `null` if no entity was found
    */
-  static async find (cid, fetchBoolean = true) {
+  static async find (cid, fetchBoolean = false) {
     if (typeof cid === 'string') {
       const start = Date.now();
       logger.debug(`Finding Entity (${start}) ...`);
@@ -71,7 +71,7 @@ const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
       logger.debug(`Finding Entity Result (${start} -> ${cid}) in ${Date.now() - start}ms`);
       if (result !== null) {
         const EntityClass = this.client[`Rlay_${result.type}`];
-        const entity = new EntityClass(this.client, result, cid);
+        const entity = new EntityClass(this.client, result);
         if (fetchBoolean) {
           await entity.fetch();
         }

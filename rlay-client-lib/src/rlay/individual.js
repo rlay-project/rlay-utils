@@ -1,4 +1,5 @@
 const Entity = require('../entity/entity');
+const VError = require('verror');
 const debug = require('../debug').extend('entity');
 
 const schemaTypeMapping = {
@@ -44,11 +45,15 @@ class Rlay_Individual extends Entity {
     const entityValue = {};
 
     propertyKeys.forEach(propertyName => {
-      if (this.client[propertyName]) {
-        propertyEntityPromises.push(this.client[propertyName].create(
-          properties[propertyName]
-        ));
+      const EntityFactory = this.client[propertyName];
+      if (!EntityFactory) {
+        const propertyNotFound = new Error(`property ${propertyName} not found. Make sure it was seeded`)
+        const invalidProperty = new VError(propertyNotFound, 'invalid property');
+        throw new VError(invalidProperty, 'failed to create individual');
       }
+      propertyEntityPromises.push(EntityFactory.create(
+        properties[propertyName]
+      ));
     });
 
     const propertyEntities = await Promise.all(propertyEntityPromises);

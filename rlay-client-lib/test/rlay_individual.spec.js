@@ -4,6 +4,13 @@ const { Rlay_Individual, Entity } = require('../src/rlay');
 const { mockClient, mockCreateEntity, mockFindEntity } = require('./mocks/client');
 const { Client } = require('../src/client');
 
+const assertThrowsAsync = async (fn, regExp) => {
+  let f = () => {};
+  try { await fn(); } catch(e) { f = () => {throw e}; } finally {
+    assert.throws(f, regExp);
+  }
+}
+
 const testObj = Rlay_Individual;
 const testObjType = 'Individual';
 const defaultPayload = {
@@ -102,14 +109,9 @@ describe('Rlay_Individual', () => {
     });
 
     context('with wrong params', () => {
-      beforeEach(async () => {
-        result = await testObj.create({doesNotExist: '123'});
-        callArg = mockClient.createEntity.lastCall.arg;
-      });
-
-      it('should use base defaults', async () => {
-        const target = JSON.stringify(defaultPayload);
-        assert.equal(JSON.stringify(callArg), target);
+      it('throws', async () => {
+        const fn = async () => testObj.create({doesNotExist: '123'})
+        assertThrowsAsync(fn, /failed to create individual/u);
       });
     });
   });

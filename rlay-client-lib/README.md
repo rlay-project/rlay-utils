@@ -29,7 +29,7 @@ client.Individual.find('123...789');
 client.Entity.find('123...789');
 ```
 
-### Instantiate a new Entity (except Individual)
+### Instantiate a new Entity
 
 Assume payload is valid and of type `DataProperty`
 
@@ -57,7 +57,7 @@ const entity = new client.getEntityFromPayload(payload);
 assert(entity instanceof client.Rlay_DataProperty);
 ```
 
-### Create a new Entity (except Individual)
+### Create a new Entity
 
 Assume payload is valid and of type `DataProperty`
 
@@ -94,13 +94,11 @@ The properties of an individual can only be specified at the creation-time of th
 ```javascript
 const client = require('./generated/rlay-client');
 
-const properties = {
+// Create a new Individual with inherent properties
+await client.Individual.create({
   nameOfApplicationSpecificEntity: true,
   anotherApplicationSpecificEntity: 45,
-};
-
-// Create a new Individual
-client.Individual.create(properties);
+});
 ```
 
 ### Create non-inherent properties aka. assertions about an Individual

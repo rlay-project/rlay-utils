@@ -1,5 +1,7 @@
 const Entity = require('../entity/entity');
 const VError = require('verror');
+const check = require('check-types');
+const { forEach } = require('p-iteration');
 const debug = require('../debug').extend('entity');
 
 const schemaTypeMapping = {
@@ -44,16 +46,34 @@ class Rlay_Individual extends Entity {
     const propertyEntityPromises = [];
     const entityValue = {};
 
-    propertyKeys.forEach(propertyName => {
+    await forEach(propertyKeys, async propertyName => {
       const EntityFactory = this.client[propertyName];
       if (!EntityFactory) {
         const propertyNotFound = new Error(`property ${propertyName} not found. Make sure it was seeded`)
         const invalidProperty = new VError(propertyNotFound, 'invalid property');
         throw new VError(invalidProperty, 'failed to create individual');
       }
-      propertyEntityPromises.push(EntityFactory.create(
-        properties[propertyName]
-      ));
+      if (EntityFactory.prototype instanceof this.client.Rlay_ClassAssertion) {
+        propertyEntityPromises.push(EntityFactory.create());
+      }
+      if (EntityFactory.prototype instanceof this.client.Rlay_DataPropertyAssertion) {
+        propertyEntityPromises.push(EntityFactory.create({
+          target: properties[propertyName]
+        }));
+      }
+      if (EntityFactory.prototype instanceof this.client.Rlay_ObjectPropertyAssertion) {
+        if (!(properties[propertyName] instanceof this.client.Rlay_Individual)) {
+          const propertyValueInvalid = new Error(`property ${propertyName} not an individual entity`)
+          const invalidProperty = new VError(propertyValueInvalid, 'invalid property value');
+          throw new VError(invalidProperty, 'failed to create individual');
+        }
+        if (check.undefined(properties[propertyName].remoteCid)) {
+          await properties[propertyName].create();
+        }
+        propertyEntityPromises.push(EntityFactory.create({
+          target: properties[propertyName].remoteCid
+        }));
+      }
     });
 
     const propertyEntities = await Promise.all(propertyEntityPromises);

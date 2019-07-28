@@ -40,22 +40,31 @@ describe('Rlay_Individual', () => {
     assert.equal(testObj.intermediate instanceof Object, true);
   });
 
+  it('initiates an individual entity', () => {
+    const indi = new mockClient.Individual(mockClient, defaultPayload);
+    const indi2 = mockClient.Individual.from(defaultPayload);
+    const indi3 = mockClient.getEntityFromPayload(defaultPayload);
+    assert.equal(indi.cid,
+      '0x019680031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470');
+    assert.equal(indi instanceof mockClient.Rlay_Individual, true);
+    assert.deepEqual(indi, indi2);
+    assert.deepEqual(indi, indi3);
+  });
+
   describe('static .create', () => {
-    let result;
-    let callArg;
-    beforeEach(async () => {
-      result = await testObj.create({
-        httpConnectionClass: true,
-        httpEntityHeaderClass: true
-      });
-      callArg = mockClient.createEntity.lastCall.arg;
-    });
+    const createDefault = {
+      httpConnectionClass: true,
+      httpEntityHeaderClass: true
+    };
 
     it('should call `client.createEntity` to create the Entity', async () => {
+      const result = await testObj.create(createDefault);
+      const callArg = mockClient.createEntity.lastCall.arg;
       assert.equal(mockClient.createEntity.callCount, 3);
     });
 
     it('should call `client.createEntity` with correct payloads for assertions', async () => {
+      const result = await testObj.create(createDefault);
       const callArgs = mockClient.createEntity.calls.slice(0, 2).map(c => c.args);
       const expected = [
         [
@@ -79,6 +88,8 @@ describe('Rlay_Individual', () => {
     })
 
     it('should call `client.createEntity` with the correct payload', async () => {
+      const result = await testObj.create(createDefault);
+      const callArg = mockClient.createEntity.lastCall.arg;
       const target = { ...defaultPayload,
         ...{
           class_assertions: [
@@ -90,22 +101,82 @@ describe('Rlay_Individual', () => {
     });
 
     it('should return an `Entity` instance', async () => {
+      const result = await testObj.create(createDefault);
+      const callArg = mockClient.createEntity.lastCall.arg;
       assert.equal(result instanceof testObj, true);
       assert.equal(result.client instanceof Client, true);
       assert.equal(result.payload instanceof Object, true);
       assert.equal(typeof result.cid, 'string');
     });
 
-    context('without custom defaults', () => {
-      beforeEach(async () => {
-        result = await testObj.create();
-        callArg = mockClient.createEntity.lastCall.arg;
+    context('ClassAssertion', () => {
+      it('sets no special attribute', async () => {
+        const result = await testObj.create({httpConnectionClass: true});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'ClassAssertion');
+      });
+    });
+
+    context('DataPropertyAssertion', () => {
+      it('sets the correct target attribute', async () => {
+        const result = await testObj.create({httpStatusCodeValueDataProperty: 200});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'DataPropertyAssertion');
+        assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
+      });
+    });
+
+    context('ObjectPropertyAssertion', () => {
+      context('individual entity with remote cid', () => {
+        it('sets the correct target attribute', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          const result = await testObj.create({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[0].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid)
+        });
+
+        it('does not create the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          await testObj.create({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 2);
+        });
       });
 
+      context('individual entity without remote cid', () => {
+        it('sets the correct target attribute', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          const result = await testObj.create({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[1].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid);
+        });
+
+        it('creates the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          await testObj.create({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 3);
+        });
+      });
+
+      context('invalid input', () => {
+        it('throws', async () => {
+          const fn = async () => testObj.create({httpRequestsObjectProperty: '123'})
+          assertThrowsAsync(fn, /failed to create individual/u);
+        });
+      });
+    });
+
+    context('without custom defaults', () => {
       it('should use base defaults', async () => {
-        const target = JSON.stringify(defaultPayload);
-        assert.equal(JSON.stringify(callArg), target);
-      })
+        await testObj.create();
+        const callArg = mockClient.createEntity.lastCall.arg;
+        assert.deepEqual(callArg, defaultPayload);
+      });
     });
 
     context('with wrong params', () => {

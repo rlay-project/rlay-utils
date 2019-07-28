@@ -93,8 +93,7 @@ class Client extends ClientInterface {
           assertion.assertion
         );
         // convert to proper Rlay Entity
-        this.schema[assertion.key] = this.entityMetaFactory.fromType(
-          this.schema[assertion.key].type,
+        this.schema[assertion.key] = this.entityMetaFactory.getEntityFromPayload(
           this.schema[assertion.key]
         );
       }

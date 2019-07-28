@@ -163,7 +163,7 @@ const dataProperties = () => ({
   ...utils.dataProp({ // literal
     name: 'httpParamName',
     label: 'Parameter Name',
-    description: 'The name of a parameter in a part of a deconstructed HTTP header value.	',
+    description: 'The name of a parameter in a part of a deconstructed HTTP header value.',
   }),
 
   ...utils.dataProp({ // literal

@@ -1,44 +1,54 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const expect = require('chai').expect
-const simple = require('simple-mock')
-const intermediate = require('../src/rlay/intermediate');
 const {
-  Rlay_Individual,
-  Rlay_Annotation,
-  Rlay_AnnotationProperty,
   Rlay_Class,
   Rlay_ClassAssertion,
   Rlay_DataProperty,
   Rlay_DataPropertyAssertion,
   Rlay_ObjectProperty,
   Rlay_ObjectPropertyAssertion } = require('../src/rlay');
+const intermediate = require('../src/rlay/intermediate');
+const { mockClient, mockCreateEntity } = require('./mocks/client');
 const { EntityMetaFactory } = require('../src/entity');
-const { Client } = require('../src/client');
-const { cids, schema} = require('./assets');
-const { UnknownEntityError } = require('../src/errors');
+const payloads = require('./assets/payloads');
 
 let client;
 let testObj;
 
 describe('EntityMetaFactory', () => {
+  beforeEach(() => mockCreateEntity(mockClient));
+  beforeEach(() => testObj = new EntityMetaFactory(mockClient));
 
-  beforeEach(() => {
-    client = new Client();
-    client.initSchema(cids, schema);
-    client.initClient();
-    testObj = new EntityMetaFactory(client);
-  });
+  describe('.getEntityFactoryFromPayload', () => {
+    it('returns the correct EntityFactory', () => {
+      const entityFactory = testObj.getEntityFactoryFromPayload(
+        payloads.clone(payloads.dataProperty));
+      assert.deepEqual(entityFactory, Rlay_DataProperty);
+    });
 
-  beforeEach(() => {
-    // mock it
-    simple.mock(client, 'createEntity').callFn(
-      async (entity) => Promise.resolve('0x0000')
-    );
+    context('invalid payload', () => {
+      context('missing type', () => {
+        it('throws', () => {
+          const invalidDataProperty = payloads.clone(payloads.dataProperty);
+          invalidDataProperty.type = undefined;
+          const fn = () => testObj.getEntityFactoryFromPayload(invalidDataProperty);
+          assert.throws(fn, /failed to get entity factory/u);
+        });
+      });
+
+      context('invalid type', () => {
+        it('throws', () => {
+          const invalidDataProperty = payloads.clone(payloads.dataProperty);
+          invalidDataProperty.type = 'Rlay_DoesNotExist';
+          const fn = () => testObj.getEntityFactoryFromPayload(invalidDataProperty);
+          assert.throws(fn, /failed to get entity factory/u);
+        });
+      });
+    });
   });
 
   describe('.fromType', () => {
-
     intermediate.kinds.forEach(intermediateKind => {
       context(`with ${intermediateKind.name}`, () => {
         it(`returns a Rlay_${intermediateKind.name} instance`, () => {
@@ -46,18 +56,24 @@ describe('EntityMetaFactory', () => {
           expect(fn).to.throw(/failed to create new entity/u);
         });
       });
-    })
+    });
+  });
+
+  describe('.getEntityFromPayload', () => {
+    it(`returns correct entity instance`, () => {
+      const entity = testObj.getEntityFromPayload(payloads.clone(payloads.dataProperty));
+      assert.equal(entity instanceof mockClient.Rlay_DataProperty, true);
+    });
   });
 
   describe('.fromSchema', () => {
-
     context('with `Rlay_Class` instance', () => {
-
       let rlayClassInstance;
       let customClassAssertion;
 
       beforeEach(async () => {
         rlayClassInstance = await Rlay_Class.create();
+        rlayClassInstance = mockClient.schema.httpConnectionClass;
         customClassAssertion = testObj.fromSchema(rlayClassInstance);
       });
 
@@ -74,19 +90,17 @@ describe('EntityMetaFactory', () => {
       });
 
       it('has same fields as `Rlay_ClassAssertion`', () => {
-        const targetFields = JSON.stringify(Rlay_ClassAssertion.fields);
-        assert.equal(JSON.stringify(customClassAssertion.fields), targetFields);
+        assert.deepEqual(customClassAssertion.fields, Rlay_ClassAssertion.fields);
       });
 
       it('has `.fieldDefaults` set for `class` with its own CID', () => {
-        const defaultFields = JSON.stringify({
+        const defaultFields = {
           annotations: [],
           subject: '0x00',
           class: rlayClassInstance.cid
-        });
-        assert.equal(JSON.stringify(customClassAssertion.fieldsDefault), defaultFields);
+        };
+        assert.deepEqual(customClassAssertion.fieldsDefault, defaultFields);
       });
-
     });
 
     context('with `Rlay_DataProperty` instance', () => {

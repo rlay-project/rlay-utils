@@ -9,6 +9,15 @@ const { Mixin } = require('mixwith');
  * @author Michael Hirn <michael.j.hirn+rlay[]gmail.com>
  */
 const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
+  /**
+   * Instantiate a new `Entity` from a payload
+   *
+   * @param {object} payload
+   * @returns {Entity|Error}
+   */
+  static from (payload) {
+    return new this(this.client, this.prepareRlayFormat(payload));
+  }
 
   /**
    * Create a new `Entity`. Calls out to the Rlay Server
@@ -20,11 +29,9 @@ const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
    * @returns {Entity|Error}
    */
   static async create (params = {}) {
-    const start = Date.now();
-    logger.debug(`Storing Individual (${start}) ...`);
-    const cid = await this.client.createEntity(this.prepareRlayFormat(params));
-    logger.debug(`Stored Individual (${start} -> ${cid}) in ${Date.now() - start}ms`);
-    return new this(this.client, this.prepareRlayFormat(params), cid);
+    const entity = this.from(params);
+    await entity.create();
+    return entity;
   }
 
   static prepareRlayFormat (params = {}) {
@@ -70,11 +77,8 @@ const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
       const result = await this.client.findEntityByCID(cid);
       logger.debug(`Finding Entity Result (${start} -> ${cid}) in ${Date.now() - start}ms`);
       if (result !== null) {
-        const EntityClass = this.client[`Rlay_${result.type}`];
-        const entity = new EntityClass(this.client, result);
-        if (fetchBoolean) {
-          await entity.fetch();
-        }
+        const entity = this.client.entityMetaFactory.getEntityFromPayload(result);
+        if (fetchBoolean) await entity.resolve();
         return entity;
       }
       return null;

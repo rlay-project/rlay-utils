@@ -1,7 +1,6 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const check = require('check-types');
-const simple = require('simple-mock');
 const { EntityInterface } = require('../src/entity');
 const { mockClient, mockCreateEntity, mockFindEntity } = require('./mocks/client');
 const payloads = require('./assets/payloads');
@@ -17,8 +16,6 @@ const targetCID = '123';
 const clone = obj => JSON.parse(JSON.stringify(obj));
 
 describe('EntityInterface', () => {
-  //beforeEach(() => mockClient = initMockClient());
-
   describe('constructor', () => {
     context('invalid client', () => {
       it('throws', () => {

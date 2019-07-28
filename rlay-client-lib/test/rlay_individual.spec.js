@@ -1,10 +1,9 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const { Rlay_Individual, Entity } = require('../src/rlay');
-const initMockClient = require('./mocks/client');
+const { mockClient, mockCreateEntity, mockFindEntity } = require('./mocks/client');
 const { Client } = require('../src/client');
 
-let mockClient;
 const testObj = Rlay_Individual;
 const testObjType = 'Individual';
 const defaultPayload = {
@@ -19,8 +18,8 @@ const defaultPayload = {
 };
 
 describe('Rlay_Individual', () => {
-
-  beforeEach(() => mockClient = initMockClient());
+  beforeEach(() => mockCreateEntity(mockClient));
+  beforeEach(() => mockFindEntity(mockClient));
 
   it('should inherit `Entity`', () => {
     assert.equal(testObj.prototype instanceof Entity, true);
@@ -35,7 +34,6 @@ describe('Rlay_Individual', () => {
   });
 
   describe('static .create', () => {
-
     let result;
     let callArg;
     beforeEach(async () => {
@@ -50,17 +48,38 @@ describe('Rlay_Individual', () => {
       assert.equal(mockClient.createEntity.callCount, 3);
     });
 
+    it('should call `client.createEntity` with correct payloads for assertions', async () => {
+      const callArgs = mockClient.createEntity.calls.slice(0, 2).map(c => c.args);
+      const expected = [
+        [
+          {
+            annotations: [],
+            subject: '0x00',
+            class: '0x018080031b204691534dff630c4482c3b92a7521a1138c4621af6618497bbc052136064b7333',
+            type: 'ClassAssertion'
+          }
+        ],
+        [
+          {
+            annotations: [],
+            subject: '0x00',
+            class: '0x018080031b20294e1a2e4c2b7dbcd0f1427dc4691333eabe9749b161bbdf648c0ffe8fb93cb9',
+            type: 'ClassAssertion'
+          }
+        ]
+      ];
+      assert.deepEqual(callArgs, expected);
+    })
+
     it('should call `client.createEntity` with the correct payload', async () => {
-      const target = JSON.stringify(Object.assign(
-        Object.assign({}, defaultPayload),
-        {
+      const target = { ...defaultPayload,
+        ...{
           class_assertions: [
-            '0x019880031b20dfa54e6d5eae5479f0361f263f81c59198bec4201bd17023260903eeaff3b84f',
-            '0x019880031b20dfa54e6d5eae5479f0361f263f81c59198bec4201bd17023260903eeaff3b84f'
+            '0x019880031b209da9db38ae4f6bdf949b76be505d22d45181d2e2e139f24a082d9e4544698623',
+            '0x019880031b208f7396cbe61cfd8b823cfc20f162484f52e958029fe5c7c69f63dbf6538b7f5e'
           ]
-        }
-      ));
-      assert.equal(JSON.stringify(callArg), target);
+        }};
+      assert.deepEqual(callArg, target);
     });
 
     it('should return an `Entity` instance', async () => {
@@ -71,20 +90,18 @@ describe('Rlay_Individual', () => {
     });
 
     context('without custom defaults', () => {
-
       beforeEach(async () => {
         result = await testObj.create();
         callArg = mockClient.createEntity.lastCall.arg;
       });
 
-      it ('should use base defaults', async () => {
+      it('should use base defaults', async () => {
         const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       })
     });
 
     context('with wrong params', () => {
-
       beforeEach(async () => {
         result = await testObj.create({doesNotExist: '123'});
         callArg = mockClient.createEntity.lastCall.arg;
@@ -94,9 +111,7 @@ describe('Rlay_Individual', () => {
         const target = JSON.stringify(defaultPayload);
         assert.equal(JSON.stringify(callArg), target);
       });
-
     });
-
   });
 
   describe('.assert', () => {

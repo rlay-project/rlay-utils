@@ -1,6 +1,5 @@
 const Entity = require('../entity/entity');
-const check = require('check-types');
-const debug = require('debug')('rlayClientLib:Individual');
+const debug = require('../debug').extend('entity');
 
 const schemaTypeMapping = {
   'ClassAssertion': 'class_assertions',
@@ -40,22 +39,19 @@ const findEntityKey = (schema, cid) => {
 
 class Rlay_Individual extends Entity {
   static async create (properties = {}) {
-    const debugMethod = debug.extend('create');
     const propertyKeys = Object.keys(properties);
     const propertyEntityPromises = [];
     const entityValue = {};
-    debugMethod('called with properties %O', properties);
 
     propertyKeys.forEach(propertyName => {
       if (this.client[propertyName]) {
-        propertyEntityPromises.push(this.client[propertyName].create());
+        propertyEntityPromises.push(this.client[propertyName].create(
+          properties[propertyName]
+        ));
       }
     });
 
-    debugMethod('called with property keys %O', propertyKeys);
-
     const propertyEntities = await Promise.all(propertyEntityPromises);
-    debugMethod('created propery entities %O', propertyEntities.map(e => e.payload.class));
 
     // setup `entityValue`
     propertyEntities.forEach(entityInstance => {
@@ -94,6 +90,37 @@ class Rlay_Individual extends Entity {
     });
     return resultObj;
   }
+
+  /**
+   * Create the class, data, object, and other assertions for an `Individual`
+   *
+   * @async
+   * @param {Object} assertions - The non-inherent properties of the individual
+   * @returns {String[]} - The `CID`s of the assertions
+   */
+  async assert (assertions = {}) {
+    debug.extend(`assert${this.type}`)(`...${this.cid.slice(-8)}`);
+    const assertionKeys = Object.keys(assertions);
+    const assertionPromises = [];
+
+    assertionKeys.forEach(propertyName => {
+      if (this.client[propertyName]) {
+        assertionPromises.push(
+          this.client[propertyName].create({subject: this.cid})
+        );
+      } else {
+        throw new Error(
+          `No schema entity exists for: '${propertyName}'. Make sure you seeded it.`
+        );
+      }
+    });
+
+    const assertionEntities = await Promise.all(assertionPromises);
+    const CIDs = assertionEntities.map(e => e.cid);
+
+    return assertionEntities;
+  }
+
 
   async fetch () {
     const [propertyPayloads, assertionPayloads] = await Promise.all([

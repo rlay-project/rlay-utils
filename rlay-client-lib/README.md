@@ -29,21 +29,62 @@ client.Individual.find('123...789');
 client.Entity.find('123...789');
 ```
 
-### Instantiate a new Entity
+### Instantiate a new Entity (except Individual)
+
+Assume payload is valid and of type `DataProperty`
 
 ```js
 const client = require('./generated/rlay-client');
 
-const entity = new client.Entity(client, payload);
+const entity = new client.Rlay_DataProperty(client, payload);
 ```
 
-### Create a new Entity
+or
 
 ```js
 const client = require('./generated/rlay-client');
 
-const entity = new client.Entity(client, payload);
+const entity = new client.Rlay_DataProperty.from(payload);
+```
+
+or (recommended)
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.getEntityFromPayload(payload);
+
+assert(entity instanceof client.Rlay_DataProperty);
+```
+
+### Create a new Entity (except Individual)
+
+Assume payload is valid and of type `DataProperty`
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.Rlay_DataProperty(client, payload);
 await entity.create();
+```
+
+or
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = await client.Rlay_DataProperty.create(payload);
+```
+
+or (recommended)
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = await client.createEntityFromPayload(payload);
+
+assert(entity instanceof client.Rlay_DataProperty);
+assert.equal(entity.remoteCid, entity.cid);
 ```
 
 ### Create an Individual with inherent properties aka. properties

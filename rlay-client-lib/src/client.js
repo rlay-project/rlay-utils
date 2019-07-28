@@ -2,9 +2,10 @@ const Web3 = require('web3');
 const { ClientInterface } = require('./interfaces/client');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
-const EntityMetaFactory = require('./entity/meta-factory');
 const RlayEntities = require('./rlay');
+const EntityMetaFactory = require('./entityMetaFactory');
 const RlayOntology = require('@rlay/ontology');
+const { mix } = require('mixwith');
 
 class Config {
   constructor() {
@@ -20,7 +21,7 @@ class Config {
 /**
  * The `Client`, ORM, and main interface for users
  */
-class Client extends ClientInterface {
+class Client extends mix(EntityMetaFactory).with(ClientInterface) {
 
   /**
    * Create a new Client instance
@@ -41,7 +42,6 @@ class Client extends ClientInterface {
     this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
     this.readLimit = pLimit(this.config.readLimit);
-    this.entityMetaFactory = new EntityMetaFactory(this);
 
     // set client for RlayEntities
     Object.keys(RlayEntities).forEach(entity => {
@@ -93,7 +93,7 @@ class Client extends ClientInterface {
           assertion.assertion
         );
         // convert to proper Rlay Entity
-        this.schema[assertion.key] = this.entityMetaFactory.getEntityFromPayload(
+        this.schema[assertion.key] = this.getEntityFromPayload(
           this.schema[assertion.key]
         );
       }
@@ -104,7 +104,7 @@ class Client extends ClientInterface {
     Object.keys(this.schema).forEach(key => {
       const schemaEntity = this.schema[key];
       try {
-        this[key] = this.entityMetaFactory.fromSchema(schemaEntity);
+        this[key] = this.fromSchema(schemaEntity);
       } catch (_) { }
     });
   }

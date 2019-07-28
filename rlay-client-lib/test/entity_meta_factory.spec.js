@@ -18,7 +18,7 @@ let testObj;
 
 describe('EntityMetaFactory', () => {
   beforeEach(() => mockCreateEntity(mockClient));
-  beforeEach(() => testObj = new EntityMetaFactory(mockClient));
+  beforeEach(() => testObj = mockClient);
 
   describe('.getEntityFactoryFromPayload', () => {
     it('returns the correct EntityFactory', () => {
@@ -63,6 +63,18 @@ describe('EntityMetaFactory', () => {
     it(`returns correct entity instance`, () => {
       const entity = testObj.getEntityFromPayload(payloads.clone(payloads.dataProperty));
       assert.equal(entity instanceof mockClient.Rlay_DataProperty, true);
+    });
+  });
+
+  describe('.createEntityFromPayload', () => {
+    it('returns correct entity instance', async () => {
+      const entity = await testObj.createEntityFromPayload(payloads.clone(payloads.dataProperty));
+      assert.equal(entity instanceof mockClient.Rlay_DataProperty, true);
+    });
+
+    it('creates the entity via rlay-client server', async () => {
+      await testObj.createEntityFromPayload(payloads.clone(payloads.dataProperty));
+      assert.equal(mockClient.createEntity.callCount, 1);
     });
   });
 

@@ -3,6 +3,7 @@ const assert = require('assert');
 const check = require('check-types');
 const RlayEntities = require('../src/rlay');
 const { mockClient, mockCreateEntity } = require('./mocks/client');
+const EntityMetaFactory = require('../src/entityMetaFactory');
 const { cids } = require('./assets');
 
 const { Entity,
@@ -42,6 +43,12 @@ describe('Client', () => {
           `${rlayEntityName} does not have '.client' set`
         );
       });
+    });
+  });
+
+  describe('entityMetaFactory', () => {
+    it('inherits from EntityMetaFactory', () => {
+      assert.equal(mockClient instanceof EntityMetaFactory, true);
     });
   });
 

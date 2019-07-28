@@ -77,7 +77,7 @@ const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
       const result = await this.client.findEntityByCID(cid);
       logger.debug(`Finding Entity Result (${start} -> ${cid}) in ${Date.now() - start}ms`);
       if (result !== null) {
-        const entity = this.client.entityMetaFactory.getEntityFromPayload(result);
+        const entity = this.client.getEntityFromPayload(result);
         if (fetchBoolean) await entity.resolve();
         return entity;
       }

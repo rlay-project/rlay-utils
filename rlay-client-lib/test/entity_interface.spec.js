@@ -135,7 +135,7 @@ describe('EntityInterface', () => {
 
   describe('.fetch', () => {
     it('is deprecated and calls .resolve', async () => {
-      assert.deepEqual(target.fetch(), target.resolve());
+      assert.deepEqual(await target.fetch(), await target.resolve());
     });
   });
 });

@@ -14,15 +14,15 @@ const generateQuery = (subjectCID, relType) => {
    //const queryOPA = `${_queryBase}-(m:ObjectPropertyAssertion)-[:target]-(o) WITH m.cid + COLLECT(o.cid) AS cids UNWIND cids AS cid RETURN DISTINCT cid`;
   let whereClause = 'type(r) = "subject"';
   if (relType === 'properties') {
-    whereClause = 'type(r) <> "subject"';
+    whereClause = 'NOT type(r) = "subject"';
   }
   return `
     MATCH
       (n:RlayEntity {cid: "${subjectCID}"})-[r]-(m:RlayEntity)
-    OPTIONAL MATCH
-      (m:RlayEntity)-[:target]-(o:RlayEntity)
     WHERE
       ${whereClause}
+    OPTIONAL MATCH
+      (m:RlayEntity)-[:target]-(o:RlayEntity)
     WITH
       m.cid + COLLECT(o.cid) AS cids
     UNWIND cids AS cid
@@ -107,9 +107,11 @@ class Rlay_Individual extends Entity {
         const target = payloads.filter(p => p.cid === payload.target).pop();
         if (target) {
           const EntityClass = this.client[`Rlay_${target.type}`];
-          resultObj[entityKey] = new EntityClass(this.client, target, target.cid);
+          resultObj[entityKey] = new EntityClass(this.client, target);
         } else {
-          resultObj[entityKey] = target;
+          const propertyValueInvalid = new Error(`no object individual found for ${entityKey}`);
+          const invalidProperty = new VError(propertyValueInvalid, 'missing object individual');
+          throw new VError(invalidProperty, 'failed to resolve individual');
         }
       }
     });
@@ -172,24 +174,20 @@ class Rlay_Individual extends Entity {
       }
     });
 
-    const assertionEntities = await Promise.all(assertionPromises);
-    const CIDs = assertionEntities.map(e => e.cid);
-
-    return assertionEntities;
+    return Promise.all(assertionPromises);
   }
 
-
-  async fetch () {
+  async resolve () {
     const [propertyPayloads, assertionPayloads] = await Promise.all([
       this.client.findEntityByCypher(generateQuery(this.cid, 'properties')),
       this.client.findEntityByCypher(generateQuery(this.cid, 'assertions')),
     ]);
     Object.assign(
       this,
-      Object.assign(
-        { properties: this._createPretty(propertyPayloads) },
-        this._createPretty(assertionPayloads)
-      )
+      {
+        properties: this._createPretty(propertyPayloads),
+        ...this._createPretty(assertionPayloads)
+      },
     );
     return this;
   }

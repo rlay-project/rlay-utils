@@ -45,4 +45,25 @@ describe('Rlay_Individual', () => {
       });
     });
   });
+
+  describe('.resolve', () => {
+    it('works as expected', async () => {
+      const properties = { httpStatusCodeValueDataProperty: 200 };
+      const indi = await client.Rlay_Individual.create(properties);
+      const objIndi1 = await client.Rlay_Individual.create({
+        httpStatusCodeValueDataProperty: 400
+      });
+      await indi.assert({
+        httpConnectionClass: true,
+        httpEntityHeaderClass: true,
+        httpRequestsObjectProperty: objIndi1
+      });
+      await indi.resolve();
+      assert.deepEqual(indi.properties, properties);
+      assert.equal(indi.httpRequestsObjectProperty instanceof client.Rlay_Individual, true);
+      assert.equal(indi.httpConnectionClass, true);
+      assert.equal(indi.httpEntityHeaderClass, true);
+      assert.equal(indi.httpStatusCodeValueDataProperty, undefined);
+    });
+  });
 });

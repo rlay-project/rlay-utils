@@ -34,15 +34,17 @@ const mockCreateEntity = mockClient => {
 }
 
 const mockFindEntity = mockClient => {
-  simple.mock(mockClient, 'findEntityByCID').callFn(
-    async (cid) => {
-      validateInputCid(cid);
-      if (cid === 'CID_EXISTS') return Promise.resolve(clone(payloads.withCid))
-      if (cid === 'CID_CONNECTION_ERROR') return Promise.reject(new Error('failure'))
-      if (cid === 'CID_NOT_FOUND') return Promise.resolve(null)
-      return Promise.resolve(payloads[cid])
-    }
-  );
+  simple.mock(mockClient, 'findEntityByCID').callFn(async cid => {
+    validateInputCid(cid);
+    if (cid === 'CID_EXISTS') return Promise.resolve(clone(payloads.withCid))
+    if (cid === 'CID_CONNECTION_ERROR') return Promise.reject(new Error('failure'))
+    if (cid === 'CID_NOT_FOUND') return Promise.resolve(null)
+    return Promise.resolve(payloads[cid])
+  });
+
+  simple.mock(mockClient, 'findEntityByCypher').callFn(async query => {
+    return Promise.resolve(['0x01', '0x02']);
+  });
 }
 
 module.exports = {

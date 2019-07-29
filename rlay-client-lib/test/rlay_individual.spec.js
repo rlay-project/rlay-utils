@@ -1,5 +1,6 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
+const check = require('check-types');
 const { Rlay_Individual, Entity } = require('../src/rlay');
 const { mockClient, mockCreateEntity, mockFindEntity } = require('./mocks/client');
 const { Client } = require('../src/client');
@@ -114,6 +115,7 @@ describe('Rlay_Individual', () => {
         const result = await testObj.create({httpConnectionClass: true});
         const callArg = mockClient.createEntity.calls[0].arg
         assert.equal(callArg.type, 'ClassAssertion');
+        assert.equal(callArg.subject, '0x00');
       });
     });
 
@@ -122,6 +124,7 @@ describe('Rlay_Individual', () => {
         const result = await testObj.create({httpStatusCodeValueDataProperty: 200});
         const callArg = mockClient.createEntity.calls[0].arg
         assert.equal(callArg.type, 'DataPropertyAssertion');
+        assert.equal(callArg.subject, '0x00');
         assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
       });
     });
@@ -134,6 +137,7 @@ describe('Rlay_Individual', () => {
           const result = await testObj.create({httpRequestsObjectProperty: objIndi});
           const callArg = mockClient.createEntity.calls[0].arg;
           assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, '0x00');
           assert.notEqual(callArg.target, undefined);
           assert.equal(callArg.target, objIndi.remoteCid)
         });
@@ -152,6 +156,7 @@ describe('Rlay_Individual', () => {
           const result = await testObj.create({httpRequestsObjectProperty: objIndi});
           const callArg = mockClient.createEntity.calls[1].arg;
           assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, '0x00');
           assert.notEqual(callArg.target, undefined);
           assert.equal(callArg.target, objIndi.remoteCid);
         });
@@ -322,6 +327,26 @@ describe('Rlay_Individual', () => {
             await assertThrowsAsync(fn, /failed to create assertion/u);
           });
         });
+      });
+    });
+  });
+
+  describe('.resolve', () => {
+    beforeEach(() => mockFindEntity(testObj.client, true));
+
+    it('calls out to the client to resolve the CIDs', async () => {
+      const indi = await testObj.create({httpStatusCodeValueDataProperty: 200});
+      await indi.resolve({
+        httpConnectionClass: true,
+        httpEntityHeaderClass: true
+      });
+      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+    });
+
+    describe('.fetch', () => {
+      it('is deprecated and calls .resolve', async () => {
+        const indi = await testObj.create();
+        assert.deepEqual(await indi.fetch(), await indi.resolve());
       });
     });
   });

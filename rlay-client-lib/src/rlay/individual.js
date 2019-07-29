@@ -123,20 +123,52 @@ class Rlay_Individual extends Entity {
    * @param {Object} assertions - The non-inherent properties of the individual
    * @returns {String[]} - The `CID`s of the assertions
    */
-  async assert (assertions = {}) {
+  async assert (assertions) {
     debug.extend(`assert${this.type}`)(`...${this.cid.slice(-8)}`);
+    if(!check.object(assertions)) {
+      const notObject = new Error('expected input to be an object.');
+      const invalidInput = new VError(notObject, 'invalid input');
+      throw new VError(invalidInput, 'failed to create assertion');
+    }
+    if(check.undefined(this.remoteCid)) {
+      const notObject = new Error('expected individual to be a remote entity and have a .remoteCid. Make sure you created the individual');
+      const invalidInput = new VError(notObject, 'invalid individual');
+      throw new VError(invalidInput, 'failed to create assertion');
+    }
     const assertionKeys = Object.keys(assertions);
     const assertionPromises = [];
 
-    assertionKeys.forEach(propertyName => {
-      if (this.client[propertyName]) {
-        assertionPromises.push(
-          this.client[propertyName].create({subject: this.cid})
-        );
-      } else {
-        throw new Error(
-          `No schema entity exists for: '${propertyName}'. Make sure you seeded it.`
-        );
+    await forEach(assertionKeys, async propertyName => {
+      const EntityFactory = this.client[propertyName];
+      if (!EntityFactory) {
+        const propertyNotFound = new Error(`property ${propertyName} not found. Make sure it was seeded`)
+        const invalidProperty = new VError(propertyNotFound, 'invalid property');
+        throw new VError(invalidProperty, 'failed to create assertion');
+      }
+      if (EntityFactory.prototype instanceof this.client.Rlay_ClassAssertion) {
+        assertionPromises.push(EntityFactory.create({
+          subject: this.cid,
+        }));
+      }
+      if (EntityFactory.prototype instanceof this.client.Rlay_DataPropertyAssertion) {
+        assertionPromises.push(EntityFactory.create({
+          subject: this.cid,
+          target: assertions[propertyName]
+        }));
+      }
+      if (EntityFactory.prototype instanceof this.client.Rlay_ObjectPropertyAssertion) {
+        if (!(assertions[propertyName] instanceof this.client.Rlay_Individual)) {
+          const propertyValueInvalid = new Error(`property ${propertyName} not an individual entity`)
+          const invalidProperty = new VError(propertyValueInvalid, 'invalid property value');
+          throw new VError(invalidProperty, 'failed to create assertion');
+        }
+        if (check.undefined(assertions[propertyName].remoteCid)) {
+          await assertions[propertyName].create();
+        }
+        assertionPromises.push(EntityFactory.create({
+          subject: this.cid,
+          target: assertions[propertyName].remoteCid
+        }));
       }
     });
 

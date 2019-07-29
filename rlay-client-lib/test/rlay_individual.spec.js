@@ -188,28 +188,141 @@ describe('Rlay_Individual', () => {
   });
 
   describe('.assert', () => {
-
-    const payload = {
+    const assertDefault = {
       httpConnectionClass: true,
       httpEntityHeaderClass: true
     };
-    let instance;
-    let result;
-    let callArg;
+    let indi;
+    before(async () => indi = await testObj.create({httpStatusCodeValueDataProperty: 200}));
 
-    beforeEach(async () => {
-      instance = await testObj.create();
-      result = await instance.assert(payload);
-      callArg = mockClient.createEntity.lastCall.arg;
+    it('should call `client.createEntity` to create the assertions', async () => {
+      await indi.assert(assertDefault);
+      assert.equal(mockClient.createEntity.callCount, 2);
     });
 
-    it('should call `client.createEntity` to create the `Assertion`(s)', async () => {
-      assert.equal(mockClient.createEntity.callCount, 3);
+    it('should call `client.createEntity` with correct payloads for assertions', async () => {
+      await indi.assert(assertDefault);
+      const callArgs = mockClient.createEntity.calls.slice(0, 2).map(c => c.args);
+      const expected = [
+        [
+          {
+            annotations: [],
+            subject: indi.cid,
+            class: '0x018080031b204691534dff630c4482c3b92a7521a1138c4621af6618497bbc052136064b7333',
+            type: 'ClassAssertion'
+          }
+        ],
+        [
+          {
+            annotations: [],
+            subject: indi.cid,
+            class: '0x018080031b20294e1a2e4c2b7dbcd0f1427dc4691333eabe9749b161bbdf648c0ffe8fb93cb9',
+            type: 'ClassAssertion'
+          }
+        ]
+      ];
+      assert.deepEqual(callArgs, expected);
+    })
+
+    it('should return assertion `Entity` instances', async () => {
+      const results = await indi.assert(assertDefault);
+      assert.equal(results.length, 2);
+      results.forEach(result => {
+        assert.equal(result instanceof mockClient.Rlay_ClassAssertion, true);
+        assert.equal(result.client instanceof Client, true);
+        assert.equal(result.payload instanceof Object, true);
+        assert.equal(typeof result.cid, 'string');
+      });
     });
 
-    it('have `Individual.cid` as `subject` for `Assertion`(s)', async () => {
-      assert.equal(callArg.subject, instance.cid);
+    context('ClassAssertion', () => {
+      it('sets no special attribute', async () => {
+        await indi.assert({httpConnectionClass: true});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'ClassAssertion');
+        assert.equal(callArg.subject, indi.cid);
+      });
     });
 
+    context('DataPropertyAssertion', () => {
+      it('sets the correct target attribute for assertion', async () => {
+        await indi.assert({httpStatusCodeValueDataProperty: 200});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'DataPropertyAssertion');
+        assert.equal(callArg.subject, indi.cid);
+        assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
+      });
+    });
+
+    context('ObjectPropertyAssertion', () => {
+      context('individual entity with remote cid', () => {
+        it('sets the correct target attribute for assertion', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[0].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, indi.cid);
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid)
+        });
+
+        it('does not create the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 1);
+        });
+      });
+
+      context('individual entity without remote cid', () => {
+        it('sets the correct target attribute for assertion', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[1].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, indi.cid);
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid);
+        });
+
+        it('creates the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 2);
+        });
+      });
+
+      context('invalid input', () => {
+        context('invalid assertion value', () => {
+          it('throws for ', async () => {
+            const fn = async () => indi.assert({httpRequestsObjectProperty: '123'})
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
+
+        context('no input', () => {
+          it('throws', async () => {
+            const fn = async () => indi.assert()
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
+
+        context('with wrong assertion key', () => {
+          it('throws', async () => {
+            const fn = async () => indi.assert({doesNotExist: '123'})
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
+
+        context('individual entity without remote cid', () => {
+          it('throws', async () => {
+            const indi = testObj.from({httpRequestsObjectProperty: 200});
+            const fn = async () => indi.assert({httpStatusCodeValueDataProperty: 201})
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
+      });
+    });
   });
 });

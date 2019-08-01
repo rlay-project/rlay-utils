@@ -171,7 +171,7 @@ describe('Rlay_Individual', () => {
       context('invalid input', () => {
         it('throws', async () => {
           const fn = async () => testObj.create({httpRequestsObjectProperty: '123'})
-          assertThrowsAsync(fn, /failed to create individual/u);
+          await assertThrowsAsync(fn, /failed to create individual/u);
         });
       });
     });
@@ -187,7 +187,7 @@ describe('Rlay_Individual', () => {
     context('with wrong params', () => {
       it('throws', async () => {
         const fn = async () => testObj.create({doesNotExist: '123'})
-        assertThrowsAsync(fn, /failed to create individual/u);
+        await assertThrowsAsync(fn, /failed to create individual/u);
       });
     });
   });

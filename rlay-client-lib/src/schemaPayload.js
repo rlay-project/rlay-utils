@@ -87,10 +87,18 @@ class SchemaPayload {
         }
         return partialSchemaPayloadObject;
       }).
-      reduce((schemaPayloadObject, partialSchemaPayloadObject) => ({
-        ...schemaPayloadObject,
-        ...partialSchemaPayloadObject
-      }), {});
+      reduce((schemaPayloadObject, partialSchemaPayloadObject) => {
+        const partialKey = Object.keys(partialSchemaPayloadObject).pop();
+        if (schemaPayloadObject[partialKey]) {
+          if (check.not.array(schemaPayloadObject[partialKey])) {
+            // wrap in array
+            schemaPayloadObject[partialKey] = [schemaPayloadObject[partialKey]]
+          }
+          schemaPayloadObject[partialKey].push(partialSchemaPayloadObject[partialKey]);
+          return schemaPayloadObject;
+        }
+        return {...schemaPayloadObject, ...partialSchemaPayloadObject}
+      }, {});
     return new this(client, schemaPayloadObject);
   }
 
@@ -127,27 +135,46 @@ class SchemaPayload {
     await forEach(Object.keys(this.payload), async assertionKey => {
       const AssertionEntity = this.client[assertionKey];
       if (AssertionEntity.prototype instanceof this.client.Rlay_ClassAssertion) {
+        if (check.array(this.payload[assertionKey])) {
+          const propertyValueInvalid = new Error(`property ${assertionKey} can not have multiple assertions and can therefore not be an array`)
+          const invalidProperty = new VError(propertyValueInvalid, 'invalid payload input');
+          throw new VError(invalidProperty, 'failed to create schema payload assertions');
+        }
         promises.push(AssertionEntity.create(validOptions));
       }
       if (AssertionEntity.prototype instanceof this.client.Rlay_DataPropertyAssertion) {
-        promises.push(AssertionEntity.create({
-          ...validOptions,
-          target: this.payload[assertionKey],
-        }));
+        if (check.not.array(this.payload[assertionKey])) {
+          // wrap it into an array
+          this.payload[assertionKey] = [this.payload[assertionKey]]
+        }
+        this.payload[assertionKey].forEach(assertionValue => {
+          promises.push(AssertionEntity.create({
+            ...validOptions,
+            target: assertionValue,
+          }));
+        });
       }
       if (AssertionEntity.prototype instanceof this.client.Rlay_ObjectPropertyAssertion) {
-        if (!(this.payload[assertionKey] instanceof this.client.Rlay_Individual)) {
+        if (check.not.array(this.payload[assertionKey])) {
+          // wrap it into an array
+          this.payload[assertionKey] = [this.payload[assertionKey]]
+        }
+        if (!check.all(this.payload[assertionKey].map(assertionValue => {
+          return assertionValue instanceof this.client.Rlay_Individual
+        }))) {
           const propertyValueInvalid = new Error(`property ${assertionKey} not an individual entity`)
           const invalidProperty = new VError(propertyValueInvalid, 'invalid property value');
           throw new VError(invalidProperty, 'failed to create individual');
         }
-        if (check.undefined(this.payload[assertionKey].remoteCid)) {
-          await this.payload[assertionKey].create();
-        }
-        promises.push(AssertionEntity.create({
-          ...validOptions,
-          target: this.payload[assertionKey].remoteCid,
-        }));
+        await forEach(this.payload[assertionKey], async assertionEntity => {
+          if (check.undefined(assertionEntity.remoteCid)) {
+            await assertionEntity.create();
+          }
+          promises.push(AssertionEntity.create({
+            ...validOptions,
+            target: assertionEntity.remoteCid,
+          }));
+        });
       }
     });
     this.entities = await Promise.all(promises);

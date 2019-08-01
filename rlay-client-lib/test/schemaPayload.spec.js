@@ -58,8 +58,8 @@ describe('SchemaPayload', () => {
   });
 
   describe('.fromPayloads', () => {
-    context('valid input', () => {
-      it('returns a SchemaPayload instance', () => {
+    context('single', () => {
+      it('returns correct SchemaPayload instance', () => {
         const schemaPayload = SchemaPayload.fromPayloads(mockClient, [payloads.withCid]);
         assert.deepEqual(schemaPayload.payload, {
           httpAuthorityDataProperty: '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'
@@ -69,6 +69,18 @@ describe('SchemaPayload', () => {
       it('returns a SchemaPayload instance from empty payloads array', () => {
         const schemaPayload = SchemaPayload.fromPayloads(mockClient, []);
         assert.deepEqual(schemaPayload.payload, {});
+      });
+    });
+
+    context('multiple', () => {
+      it('returns correct SchemaPayload instance', () => {
+        const schemaPayload = SchemaPayload.fromPayloads(mockClient, [payloads.withCid, payloads.withCid]);
+        assert.deepEqual(schemaPayload.payload, {
+          httpAuthorityDataProperty: [
+            '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)',
+            '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'
+          ]
+        });
       });
     });
 
@@ -106,31 +118,95 @@ describe('SchemaPayload', () => {
     context('no subject', () => {
       let testObj;
       let callArg;
-      const createSchemaPayload = async payload => {
+      let callArgs;
+      const createSchemaPayload = async (payload, options) => {
         testObj = new SchemaPayload(mockClient, payload);
-        await testObj.create();
+        await testObj.create(options);
         callArg = mockClient.createEntity.calls[0].arg
+        callArgs = mockClient.createEntity.calls.map(call => call.arg);
       }
 
       context('ClassAssertion', () => {
-        beforeEach(async () => createSchemaPayload({httpConnectionClass: true}));
-        it('sets no special attribute', async () => {
-          assert.equal(callArg.type, 'ClassAssertion');
-          assert.equal(callArg.subject, '0x00');
+        context('single', () => {
+          beforeEach(async () => createSchemaPayload({httpConnectionClass: true}));
+          it('sets no special attribute', async () => {
+            assert.equal(callArg.type, 'ClassAssertion');
+            assert.equal(callArg.subject, '0x00');
+          });
+
+          it('creates it once', () => assert.equal(mockClient.createEntity.callCount, 1));
+        });
+
+        context('single with options', () => {
+          beforeEach(async () => createSchemaPayload({httpConnectionClass: true}, {subject: subjectCID}));
+          it('sets the correct attributes', async () => {
+            assert.equal(callArg.type, 'ClassAssertion');
+            assert.equal(callArg.subject, subjectCID);
+          });
+
+          it('creates it once', () => assert.equal(mockClient.createEntity.callCount, 1));
+        });
+
+        context('multiple', () => {
+          it('throws', async () => {
+            await assertThrowsAsync(async () => {
+              return createSchemaPayload({httpConnectionClass: [true, true]})
+            }, /failed to create schema payload assertions/u);
+          });
+
+          it('creates none', async () => {
+            await assertThrowsAsync(async () => {
+              return createSchemaPayload({httpConnectionClass: [true, true]})
+            }, /failed to create schema payload assertions/u);
+            assert.equal(mockClient.createEntity.callCount, 0);
+          });
         });
       });
 
       context('DataPropertyAssertion', () => {
-        beforeEach(async () => createSchemaPayload({httpStatusCodeValueDataProperty: 200}));
-        it('sets the correct target attribute', async () => {
-          assert.equal(callArg.type, 'DataPropertyAssertion');
-          assert.equal(callArg.subject, '0x00');
-          assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
+        context('single', () => {
+          beforeEach(async () => createSchemaPayload({httpStatusCodeValueDataProperty: 200}));
+          it('sets the correct target attribute', async () => {
+            assert.equal(callArg.type, 'DataPropertyAssertion');
+            assert.equal(callArg.subject, '0x00');
+            assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
+          });
+
+          it('creates it once', () => assert.equal(mockClient.createEntity.callCount, 1));
+        });
+
+        context('multiple', () => {
+          beforeEach(async () => createSchemaPayload({httpStatusCodeValueDataProperty: [200, 201]}));
+          it('sets the correct target attributes', async () => {
+            callArgs.forEach(callArg => {
+              assert.equal(callArg.type, 'DataPropertyAssertion');
+              assert.equal(callArg.subject, '0x00');
+            });
+            assert.equal(mockClient.rlay.decodeValue(callArgs[0].target), 200);
+            assert.equal(mockClient.rlay.decodeValue(callArgs[1].target), 201);
+          });
+
+          it('creates it twice', () => assert.equal(mockClient.createEntity.callCount, 2));
+        });
+
+        context('multiple with options', () => {
+          beforeEach(async () => createSchemaPayload(
+            {httpStatusCodeValueDataProperty: [200, 201]}, {subject: subjectCID}));
+          it('sets the correct target attributes', async () => {
+            callArgs.forEach(callArg => {
+              assert.equal(callArg.type, 'DataPropertyAssertion');
+              assert.equal(callArg.subject, subjectCID);
+            });
+            assert.equal(mockClient.rlay.decodeValue(callArgs[0].target), 200);
+            assert.equal(mockClient.rlay.decodeValue(callArgs[1].target), 201);
+          });
+
+          it('creates it twice', () => assert.equal(mockClient.createEntity.callCount, 2));
         });
       });
 
       context('ObjectPropertyAssertion', () => {
-        context('individual entity with remote cid', () => {
+        context('single with remote cid', () => {
           let objIndi;
           beforeEach(async () => {
             objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
@@ -140,7 +216,7 @@ describe('SchemaPayload', () => {
           it('sets the correct target attribute', async () => {
             assert.equal(callArg.type, 'ObjectPropertyAssertion');
             assert.equal(callArg.subject, '0x00');
-            assert.notEqual(callArg.target, undefined);
+            assert.equal(callArg.target !== undefined, true);
             assert.equal(callArg.target, objIndi.remoteCid)
           });
 
@@ -149,7 +225,7 @@ describe('SchemaPayload', () => {
           });
         });
 
-        context('individual entity without remote cid', () => {
+        context('single without remote cid', () => {
           let objIndi;
           beforeEach(async () => {
             objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
@@ -168,86 +244,64 @@ describe('SchemaPayload', () => {
           });
         });
 
+        context('multiple', () => {
+          // eslint-disable-next-line init-declarations
+          let callArgs, objIndi1, objIndi2;
+          beforeEach(async () => {
+            objIndi1 = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+            objIndi1.remoteCid = objIndi1.cid;
+            objIndi2 = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+            objIndi2.remoteCid = objIndi2.cid;
+          });
+          beforeEach(async () => {
+            await createSchemaPayload({httpRequestsObjectProperty: [objIndi1, objIndi2]});
+            callArgs = mockClient.createEntity.calls.map(call => call.arg);
+          });
+
+          it('sets the correct target attributes', async () => {
+            callArgs.forEach(callArg => {
+              assert.equal(callArg.type, 'ObjectPropertyAssertion');
+              assert.equal(callArg.subject, '0x00');
+              assert.equal(callArg.target !== undefined, true);
+            });
+            assert.equal(callArgs[0].target, objIndi1.remoteCid)
+            assert.equal(callArgs[1].target, objIndi2.remoteCid)
+          });
+
+          it('creates it twice', () => assert.equal(mockClient.createEntity.callCount, 2));
+        });
+
+        context('multiple with options', () => {
+          // eslint-disable-next-line init-declarations
+          let callArgs, objIndi1, objIndi2;
+          beforeEach(async () => {
+            objIndi1 = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+            objIndi1.remoteCid = objIndi1.cid;
+            objIndi2 = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+            objIndi2.remoteCid = objIndi2.cid;
+          });
+          beforeEach(async () => {
+            await createSchemaPayload(
+              {httpRequestsObjectProperty: [objIndi1, objIndi2]}, {subject: subjectCID});
+            callArgs = mockClient.createEntity.calls.map(call => call.arg);
+          });
+
+          it('sets the correct target attributes', async () => {
+            callArgs.forEach(callArg => {
+              assert.equal(callArg.type, 'ObjectPropertyAssertion');
+              assert.equal(callArg.subject, subjectCID);
+              assert.equal(callArg.target !== undefined, true);
+            });
+            assert.equal(callArgs[0].target, objIndi1.remoteCid)
+            assert.equal(callArgs[1].target, objIndi2.remoteCid)
+          });
+
+          it('creates it twice', () => assert.equal(mockClient.createEntity.callCount, 2));
+        });
+
         context('invalid input', () => {
           it('throws', async () => {
             const fn = async () => createSchemaPayload({httpRequestsObjectProperty: '123'});
-            await assertThrowsAsync(fn, /failed to create individual/u);
-          });
-        });
-      });
-    });
-
-    context('subject', () => {
-      context('ClassAssertion', () => {
-        it('sets no special attribute', async () => {
-          const testObj = new SchemaPayload(mockClient, {httpConnectionClass: true});
-          await testObj.create({subject: subjectCID});
-          const callArg = mockClient.createEntity.calls[0].arg
-          assert.equal(callArg.type, 'ClassAssertion');
-          assert.equal(callArg.subject, subjectCID);
-        });
-      });
-
-      context('DataPropertyAssertion', () => {
-        it('sets the correct target attribute', async () => {
-          const testObj = new SchemaPayload(mockClient, {httpStatusCodeValueDataProperty: 200});
-          await testObj.create({subject: subjectCID});
-          const callArg = mockClient.createEntity.calls[0].arg
-          assert.equal(callArg.type, 'DataPropertyAssertion');
-          assert.equal(callArg.subject, subjectCID);
-          assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
-        });
-      });
-
-      context('ObjectPropertyAssertion', () => {
-        context('individual entity with remote cid', () => {
-          it('sets the correct target attribute', async () => {
-            const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
-            objIndi.remoteCid = objIndi.cid;
-            const testObj = new SchemaPayload(mockClient, {httpRequestsObjectProperty: objIndi});
-            await testObj.create({subject: subjectCID});
-            const callArg = mockClient.createEntity.calls[0].arg;
-            assert.equal(callArg.type, 'ObjectPropertyAssertion');
-            assert.equal(callArg.subject, subjectCID);
-            assert.notEqual(callArg.target, undefined);
-            assert.equal(callArg.target, objIndi.remoteCid)
-          });
-
-          it('does not create the individual object first', async () => {
-            const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
-            objIndi.remoteCid = objIndi.cid;
-            const testObj = new SchemaPayload(mockClient, {httpRequestsObjectProperty: objIndi});
-            await testObj.create({subject: subjectCID});
-            assert.equal(mockClient.createEntity.callCount, 1);
-          });
-        });
-
-        context('individual entity without remote cid', () => {
-          it('sets the correct target attribute', async () => {
-            const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
-            const testObj = new SchemaPayload(mockClient, {httpRequestsObjectProperty: objIndi});
-            await testObj.create({subject: subjectCID});
-            const callArg = mockClient.createEntity.calls[1].arg;
-            assert.equal(callArg.type, 'ObjectPropertyAssertion');
-            assert.equal(callArg.subject, subjectCID);
-            assert.notEqual(callArg.target, undefined);
-            assert.equal(callArg.target, objIndi.remoteCid);
-          });
-
-          it('creates the individual object first', async () => {
-            const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
-            const testObj = new SchemaPayload(mockClient, {httpRequestsObjectProperty: objIndi});
-            await testObj.create({subject: subjectCID});
-            assert.equal(mockClient.createEntity.callCount, 2);
-          });
-        });
-
-        context('invalid input', () => {
-          it('throws', async () => {
-            const fn = async () => {
-              const testObj = new SchemaPayload(mockClient, {httpRequestsObjectProperty: '123'});
-              await testObj.create({subject: subjectCID});
-            };
             await assertThrowsAsync(fn, /failed to create individual/u);
           });
         });

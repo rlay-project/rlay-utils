@@ -4,6 +4,7 @@ const expect = require('chai').expect
 const {
   Rlay_Class,
   Rlay_ClassAssertion,
+  Rlay_NegativeClassAssertion,
   Rlay_DataProperty,
   Rlay_DataPropertyAssertion,
   Rlay_ObjectProperty,
@@ -78,11 +79,43 @@ describe('EntityMetaFactory', () => {
     });
   });
 
+  describe('.getNegativeAssertionFactoryFromSchema', () => {
+    let customClassAssertion, rlayClassInstance;
+    beforeEach(() => {
+      rlayClassInstance = mockClient.schema.httpConnectionClass;
+      customClassAssertion = testObj.getNegativeAssertionFactoryFromSchema(
+        rlayClassInstance);
+    });
+
+    it('returns a `Rlay_NegativeClassAssertion`', async () => {
+      assert.equal(customClassAssertion.prototype instanceof Rlay_NegativeClassAssertion, true);
+    });
+
+    it('has `.type` = `NegativeClassAssertion`', () => {
+      assert.equal(customClassAssertion.type, 'NegativeClassAssertion');
+    });
+
+    it('has same client as instance', () => {
+      assert.equal(customClassAssertion.client, rlayClassInstance.client);
+    });
+
+    it('has same fields as `Rlay_ClassAssertion`', () => {
+      assert.deepEqual(customClassAssertion.fields, Rlay_ClassAssertion.fields);
+    });
+
+    it('has `.fieldDefaults` set for `class` with its own CID', () => {
+      const defaultFields = {
+        annotations: [],
+        subject: '0x00',
+        class: rlayClassInstance.cid
+      };
+      assert.deepEqual(customClassAssertion.fieldsDefault, defaultFields);
+    });
+  });
+
   describe('.fromSchema', () => {
     context('with `Rlay_Class` instance', () => {
-      let rlayClassInstance;
-      let customClassAssertion;
-
+      let customClassAssertion, rlayClassInstance;
       beforeEach(async () => {
         rlayClassInstance = await Rlay_Class.create();
         rlayClassInstance = mockClient.schema.httpConnectionClass;

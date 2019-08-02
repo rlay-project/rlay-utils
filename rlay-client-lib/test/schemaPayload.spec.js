@@ -147,6 +147,16 @@ describe('SchemaPayload', () => {
           it('creates it once', () => assert.equal(mockClient.createEntity.callCount, 1));
         });
 
+        context('single with negative assertion', () => {
+          beforeEach(async () => createSchemaPayload({httpConnectionClass: mockClient.negative(true)}));
+          it('sets the correct attributes', async () => {
+            assert.equal(callArg.type, 'NegativeClassAssertion');
+            assert.equal(callArg.subject, '0x00');
+          });
+
+          it('creates it once', () => assert.equal(mockClient.createEntity.callCount, 1));
+        });
+
         context('multiple', () => {
           it('throws', async () => {
             await assertThrowsAsync(async () => {
@@ -196,6 +206,22 @@ describe('SchemaPayload', () => {
             callArgs.forEach(callArg => {
               assert.equal(callArg.type, 'DataPropertyAssertion');
               assert.equal(callArg.subject, subjectCID);
+            });
+            assert.equal(mockClient.rlay.decodeValue(callArgs[0].target), 200);
+            assert.equal(mockClient.rlay.decodeValue(callArgs[1].target), 201);
+          });
+
+          it('creates it twice', () => assert.equal(mockClient.createEntity.callCount, 2));
+        });
+
+        context('multiple with negative assertion', () => {
+          beforeEach(async () => createSchemaPayload(
+            {httpStatusCodeValueDataProperty: [
+              mockClient.negative(200), mockClient.negative(201)]}));
+          it('sets the correct target attributes', async () => {
+            callArgs.forEach(callArg => {
+              assert.equal(callArg.type, 'NegativeDataPropertyAssertion');
+              assert.equal(callArg.subject, '0x00');
             });
             assert.equal(mockClient.rlay.decodeValue(callArgs[0].target), 200);
             assert.equal(mockClient.rlay.decodeValue(callArgs[1].target), 201);
@@ -290,6 +316,34 @@ describe('SchemaPayload', () => {
             callArgs.forEach(callArg => {
               assert.equal(callArg.type, 'ObjectPropertyAssertion');
               assert.equal(callArg.subject, subjectCID);
+              assert.equal(callArg.target !== undefined, true);
+            });
+            assert.equal(callArgs[0].target, objIndi1.remoteCid)
+            assert.equal(callArgs[1].target, objIndi2.remoteCid)
+          });
+
+          it('creates it twice', () => assert.equal(mockClient.createEntity.callCount, 2));
+        });
+
+        context('multiple with negative assertions', () => {
+          // eslint-disable-next-line init-declarations
+          let callArgs, objIndi1, objIndi2;
+          beforeEach(async () => {
+            objIndi1 = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+            objIndi1.remoteCid = objIndi1.cid;
+            objIndi2 = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+            objIndi2.remoteCid = objIndi2.cid;
+          });
+          beforeEach(async () => {
+            await createSchemaPayload({httpRequestsObjectProperty: [
+              mockClient.negative(objIndi1), mockClient.negative(objIndi2)]});
+            callArgs = mockClient.createEntity.calls.map(call => call.arg);
+          });
+
+          it('sets the correct target attributes', async () => {
+            callArgs.forEach(callArg => {
+              assert.equal(callArg.type, 'NegativeObjectPropertyAssertion');
+              assert.equal(callArg.subject, '0x00');
               assert.equal(callArg.target !== undefined, true);
             });
             assert.equal(callArgs[0].target, objIndi1.remoteCid)

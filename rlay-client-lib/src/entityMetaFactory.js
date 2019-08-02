@@ -37,6 +37,43 @@ class EntityMetaFactory {
     return new EntityTypeClass(this, payload);
   }
 
+  getNegativeAssertionFactoryFromSchema (entity) {
+    const newClass = { };
+    const newClassName = 'newClassName';
+
+    if (entity instanceof this.Rlay_Class) {
+      newClass[newClassName] = class extends this.Rlay_NegativeClassAssertion { }
+      newClass[newClassName].type = this.Rlay_NegativeClassAssertion.type;
+      newClass[newClassName].fields = this.Rlay_NegativeClassAssertion.fields;
+      newClass[newClassName].fieldsDefault = JSON.parse(JSON.stringify(
+        this.Rlay_NegativeClassAssertion.fieldsDefault));
+      newClass[newClassName].fieldsDefault.subject = '0x00';
+      newClass[newClassName].fieldsDefault.class = entity.cid;
+    } else if (entity instanceof this.Rlay_DataProperty) {
+      newClass[newClassName] = class extends this.Rlay_NegativeDataPropertyAssertion { }
+      newClass[newClassName].type = this.Rlay_NegativeDataPropertyAssertion.type;
+      newClass[newClassName].fields = this.Rlay_NegativeDataPropertyAssertion.fields;
+      newClass[newClassName].fieldsDefault = JSON.parse(JSON.stringify(
+        this.Rlay_NegativeDataPropertyAssertion.fieldsDefault));
+      newClass[newClassName].fieldsDefault.subject = '0x00';
+      newClass[newClassName].fieldsDefault.property = entity.cid;
+    } else if (entity instanceof this.Rlay_ObjectProperty) {
+      newClass[newClassName] = class extends this.Rlay_NegativeObjectPropertyAssertion { }
+      newClass[newClassName].type = this.Rlay_NegativeObjectPropertyAssertion.type;
+      newClass[newClassName].fields = this.Rlay_NegativeObjectPropertyAssertion.fields;
+      newClass[newClassName].fieldsDefault = JSON.parse(JSON.stringify(
+        this.Rlay_NegativeObjectPropertyAssertion.fieldsDefault));
+      newClass[newClassName].fieldsDefault.subject = '0x00';
+      newClass[newClassName].fieldsDefault.property = entity.cid;
+    } else {
+      return undefined
+      //return new Error(`Can not create Entity Class from entity with type: ${entity.type}`);
+    }
+
+    newClass[newClassName].client = this;
+    return newClass[newClassName];
+  }
+
   fromSchema (entity) {
     const newClass = { };
     const newClassName = 'newClassName';

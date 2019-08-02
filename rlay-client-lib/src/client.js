@@ -5,6 +5,7 @@ const rlay = require('@rlay/web3-rlay');
 const RlayEntities = require('./rlay');
 const EntityMetaFactory = require('./entityMetaFactory');
 const RlayOntology = require('@rlay/ontology');
+const { Negative } = require('./negative');
 const { mix } = require('mixwith');
 
 class Config {
@@ -75,6 +76,16 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
 
   initConfig (config) {
     Object.assign(this.config, config);
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  isNegative (value) {
+    return value instanceof Negative
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  negative (obj) {
+    return new Negative(obj);
   }
 
   initSchema (schemaCIDs, schema) {

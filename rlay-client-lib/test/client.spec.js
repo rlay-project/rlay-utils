@@ -2,8 +2,10 @@
 const assert = require('assert');
 const check = require('check-types');
 const RlayEntities = require('../src/rlay');
+const { Negative } = require('../src/negative');
 const { mockClient, mockCreateEntity } = require('./mocks/client');
 const EntityMetaFactory = require('../src/entityMetaFactory');
+const payloads = require('./assets/payloads');
 const { cids } = require('./assets');
 
 const { Entity,
@@ -43,6 +45,28 @@ describe('Client', () => {
           `${rlayEntityName} does not have '.client' set`
         );
       });
+    });
+  });
+
+  describe('.isNegative', () => {
+    context('negative value', () => {
+      it('returns true', () => {
+        assert.equal(mockClient.isNegative(mockClient.negative('value')), true);
+      });
+    });
+    context('positive value', () => {
+      it('returns false', () => {
+        assert.equal(mockClient.isNegative('value'), false);
+      });
+    });
+  });
+
+  describe('.negative', () => {
+    it('returns a negative instance', () => {
+      assert.equal(mockClient.negative(
+        mockClient.Rlay_DataProperty.from(payloads.clone(payloads.dataProperty))) instanceof Negative,
+        true
+      );
     });
   });
 

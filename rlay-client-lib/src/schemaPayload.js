@@ -140,7 +140,14 @@ class SchemaPayload {
           const invalidProperty = new VError(propertyValueInvalid, 'invalid payload input');
           throw new VError(invalidProperty, 'failed to create schema payload assertions');
         }
-        promises.push(AssertionEntity.create(validOptions));
+        const assertionValue = this.payload[assertionKey];
+        if (this.client.isNegative(assertionValue)) {
+          const NegativeAF = this.client.getNegativeAssertionFactoryFromSchema(
+            this.client.schema[assertionKey])
+          promises.push(NegativeAF.create(validOptions));
+        } else {
+          promises.push(AssertionEntity.create(validOptions));
+        }
       }
       if (AssertionEntity.prototype instanceof this.client.Rlay_DataPropertyAssertion) {
         if (check.not.array(this.payload[assertionKey])) {
@@ -148,10 +155,15 @@ class SchemaPayload {
           this.payload[assertionKey] = [this.payload[assertionKey]]
         }
         this.payload[assertionKey].forEach(assertionValue => {
-          promises.push(AssertionEntity.create({
-            ...validOptions,
-            target: assertionValue,
-          }));
+          if (this.client.isNegative(assertionValue)) {
+            const NegativeAF = this.client.getNegativeAssertionFactoryFromSchema(
+              this.client.schema[assertionKey])
+            promises.push(
+              NegativeAF.create({...validOptions, target: assertionValue.value}));
+          } else {
+            promises.push(
+              AssertionEntity.create({...validOptions, target: assertionValue}));
+          }
         });
       }
       if (AssertionEntity.prototype instanceof this.client.Rlay_ObjectPropertyAssertion) {
@@ -160,20 +172,30 @@ class SchemaPayload {
           this.payload[assertionKey] = [this.payload[assertionKey]]
         }
         if (!check.all(this.payload[assertionKey].map(assertionValue => {
-          return assertionValue instanceof this.client.Rlay_Individual
+          return assertionValue instanceof this.client.Rlay_Individual ||
+            (this.client.isNegative(assertionValue) &&
+              assertionValue.value instanceof this.client.Rlay_Individual)
         }))) {
           const propertyValueInvalid = new Error(`property ${assertionKey} not an individual entity`)
           const invalidProperty = new VError(propertyValueInvalid, 'invalid property value');
           throw new VError(invalidProperty, 'failed to create individual');
         }
         await forEach(this.payload[assertionKey], async assertionEntity => {
-          if (check.undefined(assertionEntity.remoteCid)) {
-            await assertionEntity.create();
+          if (this.client.isNegative(assertionEntity)) {
+            if (check.undefined(assertionEntity.value.remoteCid)) {
+              await assertionEntity.value.create();
+            }
+            const NegativeAF = this.client.getNegativeAssertionFactoryFromSchema(
+              this.client.schema[assertionKey])
+            promises.push(
+              NegativeAF.create({...validOptions, target: assertionEntity.value.remoteCid}));
+          } else {
+            if (check.undefined(assertionEntity.remoteCid)) {
+              await assertionEntity.create();
+            }
+            promises.push(
+              AssertionEntity.create({...validOptions, target: assertionEntity.remoteCid}));
           }
-          promises.push(AssertionEntity.create({
-            ...validOptions,
-            target: assertionEntity.remoteCid,
-          }));
         });
       }
     });

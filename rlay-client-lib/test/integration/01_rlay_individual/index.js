@@ -49,7 +49,8 @@ describe('Rlay_Individual', () => {
   describe('.resolve', () => {
     it('works as expected', async () => {
       const properties = { httpStatusCodeValueDataProperty: 200 };
-      const indi = await client.Rlay_Individual.create(properties);
+      const indi = await client.Rlay_Individual.create(JSON.parse(JSON.stringify(
+        properties)));
       const objIndi1 = await client.Rlay_Individual.create({
         httpStatusCodeValueDataProperty: 400
       });

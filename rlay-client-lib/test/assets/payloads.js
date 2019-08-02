@@ -17,9 +17,53 @@ const rlayProp2 = {
   superDataPropertyExpression: []
 }
 
+const rlayClassAssertion = {
+  type: 'ClassAssertion',
+  cid: '0x01948003523515151',
+  annotations: [],
+  subject: '0x00',
+  class: '0x018080031b204ab5aba7f85f0ab4047234981abb407fa63790f794dac5c73591d7f1c85c1511'
+}
+
+const rlayObjectAssertion = {
+  type: 'ObjectPropertyAssertion',
+  cid: '0x01948003523515152',
+  annotations: [],
+  subject: '0x00',
+  property: '0x019280031b2054731141737e0ebbf25db560c2f1a5e61475c71c7d77a486c0eeeb4c3eaa19f6',
+  target: '0x019680031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
+}
+
+const rlayDefaultIndividual = {
+  annotations: [],
+  class_assertions: [],
+  negative_class_assertions: [],
+  object_property_assertions: [],
+  negative_object_property_assertions: [],
+  data_property_assertions: [],
+  negative_data_property_assertions: [],
+  cid: '0x019680031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
+  type: 'Individual'
+}
+
 const clone = obj => JSON.parse(JSON.stringify(obj));
 
+
+const classAssertion = clone(rlayClassAssertion);
+const negativeClassAssertion = clone({
+  ...rlayClassAssertion,
+  ...{ type: 'NegativeClassAssertion' }
+});
 const dataPropertyAssertion = clone(rlayProp);
+const negativeDataPropertyAssertion = clone({
+  ...rlayProp,
+  ...{ type: 'NegativeDataPropertyAssertion' }
+});
+const objectPropertyAssertion = clone(rlayObjectAssertion);
+const negativeObjectPropertyAssertion = clone({
+  ...rlayObjectAssertion,
+  ...{ type: 'NegativeObjectPropertyAssertion' }
+});
 const dataProperty = clone(rlayProp2);
 const withCid = clone(rlayProp);
 
@@ -28,7 +72,13 @@ withoutCid.cid = undefined
 
 module.exports = {
   clone,
+  defaultIndividual: clone(rlayDefaultIndividual),
+  classAssertion,
+  negativeClassAssertion,
   dataPropertyAssertion,
+  negativeDataPropertyAssertion,
+  objectPropertyAssertion,
+  negativeObjectPropertyAssertion,
   withCid,
   withoutCid,
   '0x00': null,
@@ -60,5 +110,6 @@ module.exports = {
     annotations: [],
     property: '0x019780031b20e77fddce0bc5ecd30e3959d43d9dc36ef5448a113b7524621bac9053c02b3319',
     value: '0x78255265717565737420555249207468617420697320616e206162736f6c75746520706174682e'
-  }
+  },
+  '0x019680031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470': clone(rlayDefaultIndividual)
 };

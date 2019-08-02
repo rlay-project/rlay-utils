@@ -67,8 +67,8 @@ class Rlay_Individual extends Entity {
     Object.assign(
       this,
       {
-        properties: SchemaPayload.fromPayloads(this.client, propertyPayloads),
-        ...SchemaPayload.fromPayloads(this.client, assertionPayloads)
+        properties: SchemaPayload.fromPayloads(this.client, propertyPayloads).payload,
+        ...SchemaPayload.fromPayloads(this.client, assertionPayloads).payload
       },
     );
     return this;

@@ -335,11 +335,8 @@ describe('Rlay_Individual', () => {
     beforeEach(() => mockFindEntity(testObj.client, true));
 
     it('calls out to the client to resolve the CIDs', async () => {
-      const indi = await testObj.create({httpStatusCodeValueDataProperty: 200});
-      await indi.resolve({
-        httpConnectionClass: true,
-        httpEntityHeaderClass: true
-      });
+      const indi = await testObj.create({httpMethodClass: true});
+      await indi.resolve();
       assert.equal(mockClient.findEntityByCypher.callCount, 2);
     });
 

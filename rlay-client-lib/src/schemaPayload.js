@@ -64,24 +64,38 @@ class SchemaPayload {
     const schemaPayloadObject = payloads.
       map(payload => {
         const partialSchemaPayloadObject = {};
-        if (payload.type === 'ClassAssertion') {
+        if (payload.type.slice(-14) === 'ClassAssertion') {
           // find schema Key
           const key = findEntityKey(client.schema, payload.class);
-          partialSchemaPayloadObject[key] = true
-        } else if (payload.type === 'DataPropertyAssertion') {
+          if (payload.type.slice(0, 8) === 'Negative') {
+            partialSchemaPayloadObject[key] = client.negative(true);
+          } else {
+            partialSchemaPayloadObject[key] = true
+          }
+        } else if (payload.type.slice(-21) === 'DataPropertyAssertion') {
           // find schema Key
           const key = findEntityKey(client.schema, payload.property);
-          partialSchemaPayloadObject[key] = client.rlay.decodeValue(payload.target)
-        } else if (payload.type === 'ObjectPropertyAssertion') {
+          if (payload.type.slice(0, 8) === 'Negative') {
+            partialSchemaPayloadObject[key] = client.negative(
+              client.rlay.decodeValue(payload.target));
+          } else {
+            partialSchemaPayloadObject[key] = client.rlay.decodeValue(payload.target);
+          }
+        } else if (payload.type.slice(-23) === 'ObjectPropertyAssertion') {
           // find schema Key
           const key = findEntityKey(client.schema, payload.property);
           const targetPayload = payloads.filter(p => p.cid === payload.target).pop();
           if (targetPayload) {
             const EntityFactory = client.getEntityFactoryFromPayload(targetPayload);
-            partialSchemaPayloadObject[key] = new EntityFactory(client, targetPayload);
+            if (payload.type.slice(0, 8) === 'Negative') {
+              partialSchemaPayloadObject[key] = client.negative(
+                new EntityFactory(client, targetPayload));
+            } else {
+              partialSchemaPayloadObject[key] = new EntityFactory(client, targetPayload);
+            }
           } else {
-            const propertyValueInvalid = new Error(`no object individual found for ${key}`);
-            const invalidProperty = new VError(propertyValueInvalid, 'missing object individual');
+            const noObjIndi = new Error(`no object individual found in provided payloads for ${key}`);
+            const invalidProperty = new VError(noObjIndi, 'missing object individual');
             throw new VError(invalidProperty, 'failed to resolve individual');
           }
         }

@@ -58,28 +58,126 @@ describe('SchemaPayload', () => {
   });
 
   describe('.fromPayloads', () => {
-    context('single', () => {
-      it('returns correct SchemaPayload instance', () => {
-        const schemaPayload = SchemaPayload.fromPayloads(mockClient, [payloads.withCid]);
-        assert.deepEqual(schemaPayload.payload, {
-          httpAuthorityDataProperty: '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'
+    it('returns a SchemaPayload instance from empty payloads array', () => {
+      const schemaPayload = SchemaPayload.fromPayloads(mockClient, []);
+      assert.deepEqual(schemaPayload.payload, {});
+    });
+
+    context('ClassAssertion', () => {
+      context('single', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [payloads.classAssertion]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpMessageClass: true
+          });
         });
       });
 
-      it('returns a SchemaPayload instance from empty payloads array', () => {
-        const schemaPayload = SchemaPayload.fromPayloads(mockClient, []);
-        assert.deepEqual(schemaPayload.payload, {});
+      context('multiple', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.classAssertion, payloads.classAssertion]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpMessageClass: [true, true]
+          });
+        });
+      });
+
+      context('multiple with negative', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.negativeClassAssertion, payloads.classAssertion]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpMessageClass: [
+              mockClient.negative(true),
+              true,
+            ]
+          });
+        });
       });
     });
 
-    context('multiple', () => {
-      it('returns correct SchemaPayload instance', () => {
-        const schemaPayload = SchemaPayload.fromPayloads(mockClient, [payloads.withCid, payloads.withCid]);
-        assert.deepEqual(schemaPayload.payload, {
-          httpAuthorityDataProperty: [
-            '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)',
-            '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'
-          ]
+    context('DataPropertyAssertion', () => {
+      context('single', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.dataPropertyAssertion]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpAuthorityDataProperty: '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'
+          });
+        });
+      });
+
+      context('multiple', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.dataPropertyAssertion, payloads.dataPropertyAssertion]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpAuthorityDataProperty: [
+              '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)',
+              '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'
+            ]
+          });
+        });
+      });
+
+      context('multiple with negative', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.negativeDataPropertyAssertion, payloads.dataPropertyAssertion]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpAuthorityDataProperty: [
+              mockClient.negative('(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'),
+              '(ACwAAAPkFRYBIA3M5dhCOFLtFPD9MIE-q1_hhlY,NAME_SEARCH,kw3v)'
+            ]
+          });
+        });
+      });
+    });
+
+    context('ObjectPropertyAssertion', () => {
+      context('single', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.objectPropertyAssertion,
+            payloads.defaultIndividual
+          ]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpRequestsObjectProperty: new mockClient.Individual(mockClient,
+              payloads.defaultIndividual)
+          });
+        });
+      });
+
+      context('multiple', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.objectPropertyAssertion,
+            payloads.objectPropertyAssertion,
+            payloads.defaultIndividual
+          ]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpRequestsObjectProperty: [
+              new mockClient.Individual(mockClient, payloads.defaultIndividual),
+              new mockClient.Individual(mockClient, payloads.defaultIndividual)
+            ]
+          });
+        });
+      });
+
+      context('multiple with negative', () => {
+        it('returns correct SchemaPayload instance', () => {
+          const schemaPayload = SchemaPayload.fromPayloads(mockClient, [
+            payloads.negativeObjectPropertyAssertion,
+            payloads.objectPropertyAssertion,
+            payloads.defaultIndividual
+          ]);
+          assert.deepEqual(schemaPayload.payload, {
+            httpRequestsObjectProperty: [
+              mockClient.negative(new mockClient.Individual(mockClient, payloads.defaultIndividual)),
+              new mockClient.Individual(mockClient, payloads.defaultIndividual)
+            ]
+          });
         });
       });
     });

@@ -3,7 +3,16 @@ node_js:
 - lts/dubnium
 services:
   - docker
-script:
-  - npm run test
-  - npm run test:dockerimage
-  - npm run test:integration
+matrix:
+  fast_finish: true
+  include:
+    - script:
+      - npm run test
+      - npm run test:dockerimage
+      - npm run test:integration
+    - script:
+      - cd ./rlay-client-lib
+      - npm install .
+      - npm run test
+      - npm run test:dockerimage
+      - npm run test:integration

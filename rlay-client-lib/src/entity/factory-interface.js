@@ -1,5 +1,5 @@
-const logger = require('../logger')(__filename);
 const { Mixin } = require('mixwith');
+const debug = require('../debug').extend('entityFactory');
 
 /**
  * The Factory Interface Class for Entity classes (static methods)
@@ -72,10 +72,8 @@ const EntityFactoryInterface = Mixin((superclass) => class extends superclass {
    */
   static async find (cid, fetchBoolean = false) {
     if (typeof cid === 'string') {
-      const start = Date.now();
-      logger.debug(`Finding Entity (${start}) ...`);
+      debug.extend(`find`)(cid);
       const result = await this.client.findEntityByCID(cid);
-      logger.debug(`Finding Entity Result (${start} -> ${cid}) in ${Date.now() - start}ms`);
       if (result !== null) {
         const entity = this.client.getEntityFromPayload(result);
         if (fetchBoolean) await entity.resolve();

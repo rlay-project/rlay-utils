@@ -94,7 +94,7 @@ class SchemaPayload {
               partialSchemaPayloadObject[key] = new EntityFactory(client, targetPayload);
             }
           } else {
-            const noObjIndi = new Error(`no object individual found in provided payloads for ${key}`);
+            const noObjIndi = new Error(`no object individual with cid ${payload.target} found in provided payloads for ${key}`);
             const invalidProperty = new VError(noObjIndi, 'missing object individual');
             throw new VError(invalidProperty, 'failed to resolve individual');
           }

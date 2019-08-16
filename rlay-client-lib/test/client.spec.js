@@ -77,26 +77,60 @@ describe('Client', () => {
   });
 
   describe('.initSchema', () => {
-    it('exposes them under .schema', () => {
-      const schemaEntityKeys = Object.keys(client.schema);
-      assert.equal(schemaEntityKeys.length, 120);
-    });
+    context('no previous schema', () => {
+      it('exposes them under .schema', () => {
+        const schemaEntityKeys = Object.keys(client.schema);
+        assert.equal(schemaEntityKeys.length, 120);
+      });
 
-    it('exposes cids for all', () => {
-      const schemaEntityKeys = Object.keys(client.schema);
-      schemaEntityKeys.forEach(key => {
-        assert.equal(check.string(client.schema[key].cid), true);
+      it('exposes cids for all', () => {
+        const schemaEntityKeys = Object.keys(client.schema);
+        schemaEntityKeys.forEach(key => {
+          assert.equal(check.string(client.schema[key].cid), true);
+        });
+      });
+
+      it('exposes entities for non-annotation payloads', () => {
+        const schemaEntityKeys = Object.keys(client.schema);
+        schemaEntityKeys.forEach(key => {
+          if (!key.includes('Label') &&
+            !key.includes('Description') &&
+            !key.includes('AnnotationProperty')) {
+            assert.equal(check.instance(client.schema[key], Entity), true);
+          }
+        });
       });
     });
 
-    it('exposes entities for non-annotation payloads', () => {
-      const schemaEntityKeys = Object.keys(client.schema);
-      schemaEntityKeys.forEach(key => {
-        if (!key.includes('Label') &&
-          !key.includes('Description') &&
-          !key.includes('AnnotationProperty')) {
-          assert.equal(check.instance(client.schema[key], Entity), true);
-        }
+    context('new additional cid & payload', () => {
+      it('adds it to .schema', () => {
+        const cids = { 'newDataProperty': '0x019480031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470' };
+        const payloads = [{
+          key: 'newDataProperty',
+          assertion: {
+            type: 'DataProperty',
+            annotations: []
+          }
+        }];
+        client.initSchema(cids, payloads);
+        const schemaEntityKeys = Object.keys(client.schema);
+        assert.equal(schemaEntityKeys.length, 121);
+      });
+    });
+
+    context('existing additional cid & payload', () => {
+      it('does not add it to .schema', () => {
+        const cids = { 'newDataProperty': '0x019480031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470' };
+        const payloads = [{
+          key: 'newDataProperty',
+          assertion: {
+            type: 'DataProperty',
+            annotations: []
+          }
+        }];
+        client.initSchema(cids, payloads);
+        const schemaEntityKeys = Object.keys(client.schema);
+        assert.equal(schemaEntityKeys.length, 121);
       });
     });
   });

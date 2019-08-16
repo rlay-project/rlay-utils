@@ -92,7 +92,7 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
     this.schema = Object.assign(this.schema, schemaCIDs);
     // transform this.schema['abc'] = "0x00xx" to
     //           this.schema['abc'] = { cid: "0x00xx" }
-    Object.keys(this.schema).forEach(key => {
+    Object.keys(schemaCIDs).forEach(key => {
       const cid = this.schema[key];
       this.schema[key] = { cid };
     });

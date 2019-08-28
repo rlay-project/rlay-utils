@@ -72,8 +72,8 @@ class Rlay_Individual extends Entity {
       ]
     );
     return {
-      properties: propertyPayloads.map(payload => this.client.getEntityFromPayload(payload)),
-      assertions: assertionPayloads.map(payload => this.client.getEntityFromPayload(payload))
+      asProperty: propertyPayloads.map(payload => this.client.getEntityFromPayload(payload)),
+      asAssertion: assertionPayloads.map(payload => this.client.getEntityFromPayload(payload))
     }
   }
 }

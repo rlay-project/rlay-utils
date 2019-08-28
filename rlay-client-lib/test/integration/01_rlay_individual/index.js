@@ -79,8 +79,8 @@ describe('Rlay_Individual', () => {
           const searchResult = await client.Rlay_Individual.findByAssertion({
             httpConnectionClass: true
           });
-          assert.equal(searchResult.properties.length, 1);
-          assert.equal(check.all(searchResult.properties.map(entity => {
+          assert.equal(searchResult.asProperty.length, 1);
+          assert.equal(check.all(searchResult.asProperty.map(entity => {
             return entity instanceof client.Rlay_Individual
           })), true, 'search results are not Individuals');
         });
@@ -90,8 +90,8 @@ describe('Rlay_Individual', () => {
           const searchResult = await client.Rlay_Individual.findByAssertion({
             httpStatusCodeValueDataProperty: 200
           });
-          assert.equal(searchResult.properties.length, 2);
-          assert.equal(check.all(searchResult.properties.map(entity => {
+          assert.equal(searchResult.asProperty.length, 2);
+          assert.equal(check.all(searchResult.asProperty.map(entity => {
             return entity instanceof client.Rlay_Individual
           })), true, 'search results are not Individuals');
         });
@@ -102,8 +102,8 @@ describe('Rlay_Individual', () => {
           const searchResult = await client.Rlay_Individual.findByAssertion({
             httpRequestsObjectProperty: indi
           });
-          assert.equal(searchResult.properties.length, 1);
-          assert.equal(check.all(searchResult.properties.map(entity => {
+          assert.equal(searchResult.asProperty.length, 1);
+          assert.equal(check.all(searchResult.asProperty.map(entity => {
             return entity instanceof client.Rlay_Individual
           })), true, 'search results are not Individuals');
         });
@@ -116,8 +116,8 @@ describe('Rlay_Individual', () => {
           const searchResult = await client.Rlay_Individual.findByAssertion({
             httpConnectionClass: true
           });
-          assert.equal(searchResult.assertions.length, 1);
-          assert.equal(check.all(searchResult.assertions.map(entity => {
+          assert.equal(searchResult.asAssertion.length, 1);
+          assert.equal(check.all(searchResult.asAssertion.map(entity => {
             return entity instanceof client.Rlay_Individual
           })), true, 'search results are not Individuals');
         });
@@ -128,8 +128,8 @@ describe('Rlay_Individual', () => {
           const searchResult = await client.Rlay_Individual.findByAssertion({
             httpStatusCodeValueDataProperty: 599
           });
-          assert.equal(searchResult.assertions.length, 1);
-          assert.equal(check.all(searchResult.assertions.map(entity => {
+          assert.equal(searchResult.asAssertion.length, 1);
+          assert.equal(check.all(searchResult.asAssertion.map(entity => {
             return entity instanceof client.Rlay_Individual
           })), true, 'search results are not Individuals');
         });
@@ -147,9 +147,9 @@ describe('Rlay_Individual', () => {
           const searchResult = await client.Rlay_Individual.findByAssertion({
             httpRequestsObjectProperty: objIndi
           });
-          assert.equal(searchResult.assertions.length, 1);
-          assert.equal(searchResult.assertions[0].cid, indi.cid);
-          assert.equal(check.all(searchResult.assertions.map(entity => {
+          assert.equal(searchResult.asAssertion.length, 1);
+          assert.equal(searchResult.asAssertion[0].cid, indi.cid);
+          assert.equal(check.all(searchResult.asAssertion.map(entity => {
             return entity instanceof client.Rlay_Individual
           })), true, 'search results are not Individuals');
         });

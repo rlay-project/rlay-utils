@@ -360,7 +360,7 @@ describe('Rlay_Individual', () => {
     it('returns an object splitting results into .properties and .assertions', async () => {
       const result = await testObj.findByAssertion({httpMethodClass: true});
       const formCheck = check.map(result,
-        { assertions: check.array, properties: check.array });
+        { asAssertion: check.array, asProperty: check.array });
       assert.equal(check.all(Object.values(formCheck)), true, 'wrong result format');
     });
   });

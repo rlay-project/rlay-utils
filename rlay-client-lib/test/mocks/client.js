@@ -2,7 +2,6 @@ const simple = require('simple-mock');
 const payloads = require('../assets/payloads');
 const mockClient = require('../seed/generated/rlay-client');
 const VError = require('verror');
-const cloneDeep = require('lodash.clonedeep');
 
 const clone = obj => JSON.parse(JSON.stringify(obj))
 

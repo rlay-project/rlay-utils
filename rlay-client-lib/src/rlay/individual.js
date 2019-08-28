@@ -2,6 +2,7 @@ const Entity = require('../entity/entity');
 const { SchemaPayload } = require('../schemaPayload');
 const VError = require('verror');
 const check = require('check-types');
+const queries = require('../cypherQueries');
 const debug = require('../debug').extend('entity');
 
 class Rlay_Individual extends Entity {
@@ -41,28 +42,14 @@ class Rlay_Individual extends Entity {
   }
 
   async resolve () {
-    const generateQuery = (subjectCID, relType) => {
-      let whereClause = 'type(r) = "subject" AND NOT type(r) = "target"';
-      if (relType === 'properties') {
-        whereClause = 'NOT type(r) = "subject" AND NOT type(r) = "target"';
-      }
-      return `
-      MATCH
-        (n:RlayEntity {cid: "${subjectCID}"})-[r]-(m:RlayEntity)
-      WHERE
-        ${whereClause}
-      OPTIONAL MATCH
-        (m:RlayEntity)-[:target]-(o:RlayEntity)
-      WITH
-        m.cid + COLLECT(o.cid) AS cids
-      UNWIND cids AS cid
-      RETURN DISTINCT cid`;
-    }
-
-    const [propertyPayloads, assertionPayloads] = await Promise.all([
-      this.client.findEntityByCypher(generateQuery(this.cid, 'properties')),
-      this.client.findEntityByCypher(generateQuery(this.cid, 'assertions')),
-    ]);
+    const [propertyPayloads, assertionPayloads] = await Promise.all(
+      [
+        this.client.findEntityByCypher(queries.
+          individualResolve(this, 'properties')),
+        this.client.findEntityByCypher(queries.
+          individualResolve(this, 'assertions')),
+      ]
+    );
     Object.assign(
       this,
       {
@@ -75,22 +62,15 @@ class Rlay_Individual extends Entity {
 
   static async findByAssertion (assertion) {
     const schemaPayload = new SchemaPayload(this.client, assertion);
-    const generateQuery = (subjectCID, relType) => {
-      let whereClause = 'type(r) = "subject" AND NOT type(r) = "target"';
-      if (relType === 'properties') {
-        whereClause = 'NOT type(r) = "subject" AND NOT type(r) = "target"';
-      }
-      return `
-      MATCH
-        (n:RlayEntity {cid: "${subjectCID}"})-[r]-(m:Individual)
-      WHERE
-        ${whereClause}
-      RETURN m.cid`;
-    }
-    const [propertyPayloads, assertionPayloads] = await Promise.all([
-      this.client.findEntityByCypher(generateQuery(schemaPayload.schemaAssertions[0].cid, 'properties')),
-      this.client.findEntityByCypher(generateQuery(schemaPayload.schemaAssertions[0].cid, 'assertions')),
-    ]);
+    const assertionEntity = schemaPayload.schemaAssertions[0];
+    const [propertyPayloads, assertionPayloads] = await Promise.all(
+      [
+        this.client.findEntityByCypher(queries.
+          individualsByEntityAssertion(assertionEntity, 'properties')),
+        this.client.findEntityByCypher(queries.
+          individualsByEntityAssertion(assertionEntity, 'assertions')),
+      ]
+    );
     return {
       properties: propertyPayloads.map(payload => this.client.getEntityFromPayload(payload)),
       assertions: assertionPayloads.map(payload => this.client.getEntityFromPayload(payload))

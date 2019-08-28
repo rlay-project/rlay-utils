@@ -15,6 +15,8 @@ const defaultPayload = {
   "type": "Individual"
 }
 
+const clone = x => JSON.parse(JSON.stringify(x))
+
 describe('Rlay_Individual', () => {
   describe('.create', () => {
     context('same property payload', () => {
@@ -51,12 +53,12 @@ describe('Rlay_Individual', () => {
     it('works as expected', async () => {
       const properties = { httpStatusCodeValueDataProperty: 200 };
       const properties1 = { httpStatusCodeValueDataProperty: 400 };
-      const clone = x => JSON.parse(JSON.stringify(x))
       const indi = await client.Rlay_Individual.create(clone(properties));
       const objIndi1 = await client.Rlay_Individual.create(clone(properties1));
       await indi.assert({
         httpConnectionClass: true,
         httpEntityHeaderClass: true,
+        httpStatusCodeValueDataProperty: 599,
         httpRequestsObjectProperty: objIndi1
       });
       await indi.resolve();
@@ -66,31 +68,92 @@ describe('Rlay_Individual', () => {
       assert.equal(indi.httpRequestsObjectProperty instanceof client.Rlay_Individual, true);
       assert.equal(indi.httpConnectionClass, true);
       assert.equal(indi.httpEntityHeaderClass, true);
-      assert.equal(indi.httpStatusCodeValueDataProperty, undefined);
+      assert.equal(indi.httpStatusCodeValueDataProperty, 599);
     });
   });
 
   describe('.findByAssertion', () => {
-    it('works as expected', async () => {
-      const properties = { httpStatusCodeValueDataProperty: 200 };
-      const indi = await client.Rlay_Individual.create(JSON.parse(JSON.stringify(
-        properties)));
-      const objIndi1 = await client.Rlay_Individual.create({
-        httpStatusCodeValueDataProperty: 400
+    context('property assertions', () => {
+      context('ClassAssertion', () => {
+        it('works as expected', async () => {
+          const searchResult = await client.Rlay_Individual.findByAssertion({
+            httpConnectionClass: true
+          });
+          assert.equal(searchResult.properties.length, 1);
+          assert.equal(check.all(searchResult.properties.map(entity => {
+            return entity instanceof client.Rlay_Individual
+          })), true, 'search results are not Individuals');
+        });
       });
-      await indi.assert({
-        httpConnectionClass: true,
-        httpEntityHeaderClass: true,
-        httpRequestsObjectProperty: objIndi1
+      context('DataPropertyAssertion', () => {
+        it('works as expected', async () => {
+          const searchResult = await client.Rlay_Individual.findByAssertion({
+            httpStatusCodeValueDataProperty: 200
+          });
+          assert.equal(searchResult.properties.length, 2);
+          assert.equal(check.all(searchResult.properties.map(entity => {
+            return entity instanceof client.Rlay_Individual
+          })), true, 'search results are not Individuals');
+        });
       });
-      const searchResult = await client.Rlay_Individual.findByAssertion({
-        httpStatusCodeValueDataProperty: 200
+      context('ObjectPropertyAssertion', () => {
+        it('works as expected', async () => {
+          const indi = client.getEntityFromPayload(defaultPayload);
+          const searchResult = await client.Rlay_Individual.findByAssertion({
+            httpRequestsObjectProperty: indi
+          });
+          assert.equal(searchResult.properties.length, 1);
+          assert.equal(check.all(searchResult.properties.map(entity => {
+            return entity instanceof client.Rlay_Individual
+          })), true, 'search results are not Individuals');
+        });
       });
-      assert.equal(searchResult.properties.length, 2);
-      assert.equal(searchResult.assertions.length, 0);
-      assert.equal(check.all(searchResult.properties.map(entity => {
-        return entity instanceof client.Rlay_Individual
-      })), true, 'search results are not Individuals');
+    });
+
+    context('assert assertions', () => {
+      context('ClassAssertion', () => {
+        it('works as expected', async () => {
+          const searchResult = await client.Rlay_Individual.findByAssertion({
+            httpConnectionClass: true
+          });
+          assert.equal(searchResult.assertions.length, 1);
+          assert.equal(check.all(searchResult.assertions.map(entity => {
+            return entity instanceof client.Rlay_Individual
+          })), true, 'search results are not Individuals');
+        });
+      });
+
+      context('DataPropertyAssertion', () => {
+        it('works as expected', async () => {
+          const searchResult = await client.Rlay_Individual.findByAssertion({
+            httpStatusCodeValueDataProperty: 599
+          });
+          assert.equal(searchResult.assertions.length, 1);
+          assert.equal(check.all(searchResult.assertions.map(entity => {
+            return entity instanceof client.Rlay_Individual
+          })), true, 'search results are not Individuals');
+        });
+      });
+
+      context('ObjectPropertyAssertion', () => {
+        it('works as expected', async () => {
+          const clonedDefault = clone(defaultPayload);
+          clonedDefault.annotations.push('0x00');
+          const objIndi = client.getEntityFromPayload(clonedDefault);
+          const indi = await client.Rlay_Individual.create({
+            httpEntityHeaderClass: true,
+          });
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          const searchResult = await client.Rlay_Individual.findByAssertion({
+            httpRequestsObjectProperty: objIndi
+          });
+          assert.equal(searchResult.assertions.length, 1);
+          assert.equal(searchResult.assertions[0].cid, indi.cid);
+          assert.equal(check.all(searchResult.assertions.map(entity => {
+            return entity instanceof client.Rlay_Individual
+          })), true, 'search results are not Individuals');
+        });
+      });
     });
   });
 });

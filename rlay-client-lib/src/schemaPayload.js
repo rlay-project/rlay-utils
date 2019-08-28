@@ -2,6 +2,7 @@ const { ClientInterface } = require('./interfaces/client');
 const { Payload } = require('./payload');
 const check = require('check-types');
 const { forEach } = require('p-iteration');
+const err = require('./errors').SchemaPayload;
 const VError = require('verror');
 
 const filterByValidKeys = (obj, validKeys) => {
@@ -26,81 +27,107 @@ const findEntityKey = (schema, cid) => {
 }
 
 class SchemaPayload {
-  constructor (client, payloadObject) {
-    // setup client
-    if (check.instance(client, ClientInterface)) {
-      this.client = client;
-    } else {
-      const wrongType = new Error(`expected client to be instance of ClientInterface`)
-      const invalidClient = new VError(wrongType, 'invalid client');
-      throw new VError(invalidClient, 'failed to instantiate schema payload');
-    }
+  constructor (client, payloadObject, options = {}) {
+    if (check.not.instance(client, ClientInterface)) throw err.invalidClient();
 
     // validate payloadObject
     Object.keys(payloadObject).forEach(key => {
-      const schemaAssertion = client[key];
-      if (!schemaAssertion) {
-        const propertyNotFound = new Error(`schema entity ${key} not found. Make sure it was seeded`)
-        const invalidProperty = new VError(propertyNotFound, 'invalid payload object');
-        throw new VError(invalidProperty, 'failed to instantiate schema payload');
-      }
-      // do; we should also check that the schemaAssertion is instanceof Entity
-      return schemaAssertion;
+      if (!client[key]) throw err.schemaEntityNotFound(key);
     });
+
+    const normalizedPayloadObject = SchemaPayload.
+      normalizePayloadObject(payloadObject);
+    this.schemaAssertions = normalizedPayloadObject.map(object => {
+      const key = object.key;
+      const value = object.value;
+      const AE = client[key];
+      const validOptions = filterByValidKeys(options, ['subject']);
+      if (AE.prototype instanceof client.Rlay_ClassAssertion) {
+        if (client.isNegative(value)) {
+          const NegativeAF = client.getNegativeAssertionFactoryFromSchema(
+            client.schema[key]);
+          return NegativeAF.from({...validOptions});
+        }
+        return AE.from({...validOptions});
+      }
+      if (AE.prototype instanceof client.Rlay_DataPropertyAssertion) {
+        if (client.isNegative(value)) {
+          const NegativeAF = client.getNegativeAssertionFactoryFromSchema(
+            client.schema[key]);
+          return NegativeAF.from({...validOptions, target: value.value});
+        }
+        return AE.from({...validOptions, target: value});
+      }
+      if (AE.prototype instanceof client.Rlay_ObjectPropertyAssertion) {
+        if (client.isNegative(value)) {
+          if (!(value.value instanceof client.Rlay_Individual)) {
+            const propertyValueInvalid = new Error(`property ${key} not an individual entity`)
+            const invalidProperty = new VError(propertyValueInvalid, 'invalid property value');
+            throw new VError(invalidProperty, 'failed to create individual');
+          }
+          const NegativeAF = client.getNegativeAssertionFactoryFromSchema(
+            client.schema[key])
+          return NegativeAF.from({...validOptions, target: value.value.cid});
+        }
+        if (!(value instanceof client.Rlay_Individual)) {
+          const propertyValueInvalid = new Error(`property ${key} not an individual entity`)
+          const invalidProperty = new VError(propertyValueInvalid, 'invalid property value');
+          throw new VError(invalidProperty, 'failed to create individual');
+        }
+        return AE.from({...validOptions, target: value.cid});
+      }
+    });
+
+    this.client = client;
     this.payload = payloadObject;
   }
 
   static fromPayloads (client, payloads) {
-    if (check.not.instance(client, ClientInterface)) {
-      const wrongType = new Error(`expected client to be instance of ClientInterface`)
-      const invalidClient = new VError(wrongType, 'invalid client');
-      throw new VError(invalidClient, 'failed to instantiate schema payload from entity payloads');
-    }
+    if (check.not.instance(client, ClientInterface)) throw err.invalidClient();
     if (check.not.array(payloads) || !check.all(payloads.map(check.object))) {
       const wrongType = new Error(`expected payloads to be an array of entity payloads objects`)
       const invalidClient = new VError(wrongType, 'invalid payloads input');
       throw new VError(invalidClient, 'failed to instantiate schema payload from entity payloads');
     }
-    const schemaPayloadObject = payloads.
-      map(payload => {
-        const partialSchemaPayloadObject = {};
-        if (payload.type.slice(-14) === 'ClassAssertion') {
-          // find schema Key
-          const key = findEntityKey(client.schema, payload.class);
-          if (payload.type.slice(0, 8) === 'Negative') {
-            partialSchemaPayloadObject[key] = client.negative(true);
-          } else {
-            partialSchemaPayloadObject[key] = true
-          }
-        } else if (payload.type.slice(-21) === 'DataPropertyAssertion') {
-          // find schema Key
-          const key = findEntityKey(client.schema, payload.property);
+    const schemaPayloadObject = payloads.map(payload => {
+      const partialSchemaPayloadObject = {};
+      if (payload.type.slice(-14) === 'ClassAssertion') {
+        // find schema Key
+        const key = findEntityKey(client.schema, payload.class);
+        if (payload.type.slice(0, 8) === 'Negative') {
+          partialSchemaPayloadObject[key] = client.negative(true);
+        } else {
+          partialSchemaPayloadObject[key] = true
+        }
+      } else if (payload.type.slice(-21) === 'DataPropertyAssertion') {
+        // find schema Key
+        const key = findEntityKey(client.schema, payload.property);
+        if (payload.type.slice(0, 8) === 'Negative') {
+          partialSchemaPayloadObject[key] = client.negative(
+            client.rlay.decodeValue(payload.target));
+        } else {
+          partialSchemaPayloadObject[key] = client.rlay.decodeValue(payload.target);
+        }
+      } else if (payload.type.slice(-23) === 'ObjectPropertyAssertion') {
+        // find schema Key
+        const key = findEntityKey(client.schema, payload.property);
+        const targetPayload = payloads.filter(p => p.cid === payload.target).pop();
+        if (targetPayload) {
+          const EntityFactory = client.getEntityFactoryFromPayload(targetPayload);
           if (payload.type.slice(0, 8) === 'Negative') {
             partialSchemaPayloadObject[key] = client.negative(
-              client.rlay.decodeValue(payload.target));
+              new EntityFactory(client, targetPayload));
           } else {
-            partialSchemaPayloadObject[key] = client.rlay.decodeValue(payload.target);
+            partialSchemaPayloadObject[key] = new EntityFactory(client, targetPayload);
           }
-        } else if (payload.type.slice(-23) === 'ObjectPropertyAssertion') {
-          // find schema Key
-          const key = findEntityKey(client.schema, payload.property);
-          const targetPayload = payloads.filter(p => p.cid === payload.target).pop();
-          if (targetPayload) {
-            const EntityFactory = client.getEntityFactoryFromPayload(targetPayload);
-            if (payload.type.slice(0, 8) === 'Negative') {
-              partialSchemaPayloadObject[key] = client.negative(
-                new EntityFactory(client, targetPayload));
-            } else {
-              partialSchemaPayloadObject[key] = new EntityFactory(client, targetPayload);
-            }
-          } else {
-            const noObjIndi = new Error(`no object individual with cid ${payload.target} found in provided payloads for ${key}`);
-            const invalidProperty = new VError(noObjIndi, 'missing object individual');
-            throw new VError(invalidProperty, 'failed to resolve individual');
-          }
+        } else {
+          const noObjIndi = new Error(`no object individual with cid ${payload.target} found in provided payloads for ${key}`);
+          const invalidProperty = new VError(noObjIndi, 'missing object individual');
+          throw new VError(invalidProperty, 'failed to resolve individual');
         }
-        return partialSchemaPayloadObject;
-      }).
+      }
+      return partialSchemaPayloadObject;
+    }).
       reduce((schemaPayloadObject, partialSchemaPayloadObject) => {
         const partialKey = Object.keys(partialSchemaPayloadObject).pop();
         if (schemaPayloadObject[partialKey]) {
@@ -117,7 +144,7 @@ class SchemaPayload {
   }
 
   toIndividualEntityPayload () {
-    if (check.not.array(this.entities)) {
+    if (check.not.array(this.schemaAssertions)) {
       const createdStatusError = new Error('expected `.create` to have been called on schema payload')
       const invalidError = new VError(createdStatusError, 'invalid schema payload status');
       throw new VError(invalidError, 'failed to create individual entity payload');
@@ -134,7 +161,7 @@ class SchemaPayload {
       "type": "Individual"
     }, () => true);
     // setup `entityValue`
-    this.entities.forEach(entity => {
+    this.schemaAssertions.forEach(entity => {
       const propertyType = schemaTypeMapping[entity.type];
       if (propertyType) {
         newIndividualPayload[propertyType].push(entity.remoteCid);
@@ -143,78 +170,46 @@ class SchemaPayload {
     return newIndividualPayload.toJson();
   }
 
+  /*
+   * payload Object is something like this:
+   * { key: value, key2: [value, value2] }
+   * which makes it difficult to process. `normalizePayloadObject` turns it into
+   * [{key: key, value: value}, {key: key2, value: value}, {key: key2: value: value2}]
+   */
+  static normalizePayloadObject (object) {
+    return Array.from(Object.keys(object), (k) => {
+      if (check.array(object[k])) return object[k].map(v => ({key: k, value: v}))
+      return {key: k, value: object[k]}
+    }).reduce((all, one) => {
+      if (check.array(one)) return [...all, ...one]
+      return [...all, one]
+    }, []);
+  }
+
   async create (options = {}) {
-    const promises = []
-    const validOptions = filterByValidKeys(options, ['subject']);
-    await forEach(Object.keys(this.payload), async assertionKey => {
-      const AssertionEntity = this.client[assertionKey];
-      if (AssertionEntity.prototype instanceof this.client.Rlay_ClassAssertion) {
-        if (check.array(this.payload[assertionKey])) {
-          const propertyValueInvalid = new Error(`property ${assertionKey} can not have multiple assertions and can therefore not be an array`)
-          const invalidProperty = new VError(propertyValueInvalid, 'invalid payload input');
-          throw new VError(invalidProperty, 'failed to create schema payload assertions');
-        }
-        const assertionValue = this.payload[assertionKey];
-        if (this.client.isNegative(assertionValue)) {
-          const NegativeAF = this.client.getNegativeAssertionFactoryFromSchema(
-            this.client.schema[assertionKey])
-          promises.push(NegativeAF.create(validOptions));
+    // create invidividuals for ObjectPropertyAssertions if they don't exist remotely yet
+    const normalizedPayloadObject = SchemaPayload.
+      normalizePayloadObject(this.payload);
+    await forEach(normalizedPayloadObject, async object => {
+      const key = object.key;
+      const value = object.value;
+      const AE = this.client[key];
+      if (AE.prototype instanceof this.client.Rlay_ObjectPropertyAssertion) {
+        if (this.client.isNegative(value)) {
+          if (check.undefined(value.value.remoteCid)) {
+            await value.value.create();
+          }
         } else {
-          promises.push(AssertionEntity.create(validOptions));
+          if (check.undefined(value.remoteCid)) await value.create();
         }
-      }
-      if (AssertionEntity.prototype instanceof this.client.Rlay_DataPropertyAssertion) {
-        if (check.not.array(this.payload[assertionKey])) {
-          // wrap it into an array
-          this.payload[assertionKey] = [this.payload[assertionKey]]
-        }
-        this.payload[assertionKey].forEach(assertionValue => {
-          if (this.client.isNegative(assertionValue)) {
-            const NegativeAF = this.client.getNegativeAssertionFactoryFromSchema(
-              this.client.schema[assertionKey])
-            promises.push(
-              NegativeAF.create({...validOptions, target: assertionValue.value}));
-          } else {
-            promises.push(
-              AssertionEntity.create({...validOptions, target: assertionValue}));
-          }
-        });
-      }
-      if (AssertionEntity.prototype instanceof this.client.Rlay_ObjectPropertyAssertion) {
-        if (check.not.array(this.payload[assertionKey])) {
-          // wrap it into an array
-          this.payload[assertionKey] = [this.payload[assertionKey]]
-        }
-        if (!check.all(this.payload[assertionKey].map(assertionValue => {
-          return assertionValue instanceof this.client.Rlay_Individual ||
-            (this.client.isNegative(assertionValue) &&
-              assertionValue.value instanceof this.client.Rlay_Individual)
-        }))) {
-          const propertyValueInvalid = new Error(`property ${assertionKey} not an individual entity`)
-          const invalidProperty = new VError(propertyValueInvalid, 'invalid property value');
-          throw new VError(invalidProperty, 'failed to create individual');
-        }
-        await forEach(this.payload[assertionKey], async assertionEntity => {
-          if (this.client.isNegative(assertionEntity)) {
-            if (check.undefined(assertionEntity.value.remoteCid)) {
-              await assertionEntity.value.create();
-            }
-            const NegativeAF = this.client.getNegativeAssertionFactoryFromSchema(
-              this.client.schema[assertionKey])
-            promises.push(
-              NegativeAF.create({...validOptions, target: assertionEntity.value.remoteCid}));
-          } else {
-            if (check.undefined(assertionEntity.remoteCid)) {
-              await assertionEntity.create();
-            }
-            promises.push(
-              AssertionEntity.create({...validOptions, target: assertionEntity.remoteCid}));
-          }
-        });
       }
     });
-    this.entities = await Promise.all(promises);
-    return this.entities;
+    // set the options that were provided, i.e. subject and create the entities
+    await Promise.all(this.schemaAssertions.map(assertion => {
+      assertion.payload.subject = options.subject || assertion.payload.subject;
+      return assertion.create(options);
+    }));
+    return this.schemaAssertions
   }
 }
 

@@ -43,7 +43,7 @@ const mockFindEntity = mockClient => {
   });
 
   simple.mock(mockClient, 'findEntityByCypher').callFn(async query => {
-    return Promise.resolve([{type: 'Class', cid: '0x01'}, {type: 'Class', cid: '0x02'}]);
+    return Promise.resolve([{type: 'Class', cid: '0x018080031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'}, {type: 'Class', cid: '0x018080031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'}]);
   });
 }
 

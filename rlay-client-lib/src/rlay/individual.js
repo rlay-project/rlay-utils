@@ -73,6 +73,30 @@ class Rlay_Individual extends Entity {
     );
     return this;
   }
+
+  static async findByAssertion (assertion) {
+    const schemaPayload = new SchemaPayload(this.client, assertion);
+    const generateQuery = (subjectCID, relType) => {
+      let whereClause = 'type(r) = "subject"';
+      if (relType === 'properties') {
+        whereClause = 'NOT type(r) = "subject"';
+      }
+      return `
+      MATCH
+        (n:RlayEntity {cid: "${subjectCID}"})-[r]-(m:Individual)
+      WHERE
+        ${whereClause}
+      RETURN m.cid`;
+    }
+    const [propertyPayloads, assertionPayloads] = await Promise.all([
+      this.client.findEntityByCypher(generateQuery(schemaPayload.schemaAssertions[0].cid, 'properties')),
+      this.client.findEntityByCypher(generateQuery(schemaPayload.schemaAssertions[0].cid, 'assertions')),
+    ]);
+    return {
+      properties: propertyPayloads.map(payload => this.client.getEntityFromPayload(payload)),
+      assertions: assertionPayloads.map(payload => this.client.getEntityFromPayload(payload))
+    }
+  }
 }
 
 module.exports = Rlay_Individual;

@@ -2,6 +2,7 @@
 const assert = require('assert');
 const Client = require('../../mocks/client');
 const client = Client.mockClient;
+const check = require('check-types');
 
 const defaultPayload = {
   "annotations": [],
@@ -65,6 +66,30 @@ describe('Rlay_Individual', () => {
       assert.equal(indi.httpConnectionClass, true);
       assert.equal(indi.httpEntityHeaderClass, true);
       assert.equal(indi.httpStatusCodeValueDataProperty, undefined);
+    });
+  });
+
+  describe('.findByAssertion', () => {
+    it('works as expected', async () => {
+      const properties = { httpStatusCodeValueDataProperty: 200 };
+      const indi = await client.Rlay_Individual.create(JSON.parse(JSON.stringify(
+        properties)));
+      const objIndi1 = await client.Rlay_Individual.create({
+        httpStatusCodeValueDataProperty: 400
+      });
+      await indi.assert({
+        httpConnectionClass: true,
+        httpEntityHeaderClass: true,
+        httpRequestsObjectProperty: objIndi1
+      });
+      const searchResult = await client.Rlay_Individual.findByAssertion({
+        httpStatusCodeValueDataProperty: 200
+      });
+      assert.equal(searchResult.properties.length, 2);
+      assert.equal(searchResult.assertions.length, 0);
+      assert.equal(check.all(searchResult.properties.map(entity => {
+        return entity instanceof client.Rlay_Individual
+      })), true, 'search results are not Individuals');
     });
   });
 });

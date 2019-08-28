@@ -42,10 +42,9 @@ class Rlay_Individual extends Entity {
 
   async resolve () {
     const generateQuery = (subjectCID, relType) => {
-      //const queryOPA = `${_queryBase}-(m:ObjectPropertyAssertion)-[:target]-(o) WITH m.cid + COLLECT(o.cid) AS cids UNWIND cids AS cid RETURN DISTINCT cid`;
-      let whereClause = 'type(r) = "subject"';
+      let whereClause = 'type(r) = "subject" AND NOT type(r) = "target"';
       if (relType === 'properties') {
-        whereClause = 'NOT type(r) = "subject"';
+        whereClause = 'NOT type(r) = "subject" AND NOT type(r) = "target"';
       }
       return `
       MATCH
@@ -77,9 +76,9 @@ class Rlay_Individual extends Entity {
   static async findByAssertion (assertion) {
     const schemaPayload = new SchemaPayload(this.client, assertion);
     const generateQuery = (subjectCID, relType) => {
-      let whereClause = 'type(r) = "subject"';
+      let whereClause = 'type(r) = "subject" AND NOT type(r) = "target"';
       if (relType === 'properties') {
-        whereClause = 'NOT type(r) = "subject"';
+        whereClause = 'NOT type(r) = "subject" AND NOT type(r) = "target"';
       }
       return `
       MATCH

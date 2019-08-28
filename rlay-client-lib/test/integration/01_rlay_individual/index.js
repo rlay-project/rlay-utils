@@ -50,18 +50,19 @@ describe('Rlay_Individual', () => {
   describe('.resolve', () => {
     it('works as expected', async () => {
       const properties = { httpStatusCodeValueDataProperty: 200 };
-      const indi = await client.Rlay_Individual.create(JSON.parse(JSON.stringify(
-        properties)));
-      const objIndi1 = await client.Rlay_Individual.create({
-        httpStatusCodeValueDataProperty: 400
-      });
+      const properties1 = { httpStatusCodeValueDataProperty: 400 };
+      const clone = x => JSON.parse(JSON.stringify(x))
+      const indi = await client.Rlay_Individual.create(clone(properties));
+      const objIndi1 = await client.Rlay_Individual.create(clone(properties1));
       await indi.assert({
         httpConnectionClass: true,
         httpEntityHeaderClass: true,
         httpRequestsObjectProperty: objIndi1
       });
       await indi.resolve();
+      await objIndi1.resolve();
       assert.deepEqual(indi.properties, properties);
+      assert.deepEqual(objIndi1.properties, properties1);
       assert.equal(indi.httpRequestsObjectProperty instanceof client.Rlay_Individual, true);
       assert.equal(indi.httpConnectionClass, true);
       assert.equal(indi.httpEntityHeaderClass, true);

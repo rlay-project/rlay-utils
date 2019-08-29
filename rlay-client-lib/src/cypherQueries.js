@@ -1,49 +1,49 @@
-const getWhereClause = relType => {
+const getWhereClause = (relType, rElm) => {
   if (relType === 'properties') {
-    return 'NOT type(r) = "subject" AND NOT type(r) = "target"';
+    return `NOT type(${rElm}) = "subject" AND NOT type(${rElm}) = "target"`
   }
-  return 'type(r) = "subject" AND NOT type(r) = "target"'
+  return `type(${rElm}) = "subject" AND NOT type(${rElm}) = "target"`
 }
 
 const cypherQueries = {
-  individualsByEntityAssertion: (entity, relType) => {
-    const whereTypeClause = getWhereClause(relType);
-    if (entity.type === 'ClassAssertion') {
-      return `
-      MATCH
-      (i:Individual)-[r]-(a:RlayEntity)-[r1]-(s:RlayEntity {cid: "${entity.payload.class}"})
-      WHERE
-      ${whereTypeClause} AND
-      type(r1) = "class"
-      RETURN i.cid`;
-    }
-    if (entity.type === 'DataPropertyAssertion') {
-      return `
-      MATCH
-      (i:Individual)-[r]-(a:RlayEntity)-[r1]-(s:RlayEntity {cid: "${entity.payload.property}"})
-      WHERE
-      ${whereTypeClause} AND
-      type(r1) = "property" AND
-      a.target = "${entity.payload.target}"
-      RETURN i.cid`;
-    }
-    if (entity.type === 'ObjectPropertyAssertion') {
-      return `
-      MATCH
-      (i:Individual)-[r]-(a:RlayEntity)-[r1]-(s:RlayEntity {cid: "${entity.payload.property}"})
-      WHERE
-      ${whereTypeClause} AND
-      type(r1) = "property"
-      MATCH
-      (a)-[:target]-(o)
-      WHERE
-      o.cid = "${entity.payload.target}"
-      RETURN i.cid`;
-    }
-    throw new Error(`invalid entity type (${entity.type}); supported are {ObjectPropertyAssertion, DataPropertyAssertion, ClassAssertion}`);
+  individualsByEntityAssertion: (entities, relType) => {
+    return entities.map((entity, _i) => {
+      const i = _i + 1;
+      const whereTypeClause = getWhereClause(relType, `r${i}1`);
+      if (entity.type === 'ClassAssertion') {
+        return `
+        MATCH
+        (i:Individual)-[r${i}1]-(a${i}:RlayEntity)-[r${i}2]-(:RlayEntity {cid: "${entity.payload.class}"})
+        WHERE
+        ${whereTypeClause} AND
+        type(r${i}2) = "class"`;
+      }
+      if (entity.type === 'DataPropertyAssertion') {
+        return `
+        MATCH
+        (i:Individual)-[r${i}1]-(a${i}:RlayEntity)-[r${i}2]-(:RlayEntity {cid: "${entity.payload.property}"})
+        WHERE
+        ${whereTypeClause} AND
+        type(r${i}2) = "property" AND
+        a${i}.target = "${entity.payload.target}"`;
+      }
+      if (entity.type === 'ObjectPropertyAssertion') {
+        return `
+        MATCH
+        (i:Individual)-[r${i}1]-(a${i}:RlayEntity)-[r${i}2]-(:RlayEntity {cid: "${entity.payload.property}"})
+        WHERE
+        ${whereTypeClause} AND
+        type(r${i}2) = "property"
+        MATCH
+        (a${i})-[:target]-(o${i})
+        WHERE
+        o${i}.cid = "${entity.payload.target}"`;
+      }
+      throw new Error(`invalid entity type (${entity.type}); supported are {ObjectPropertyAssertion, DataPropertyAssertion, ClassAssertion}`);
+    }).reduce((all, one) => all + one, '') + ' RETURN i.cid';
   },
   individualResolve: (entity, relType) => {
-    const whereClause = getWhereClause(relType);
+    const whereClause = getWhereClause(relType, 'r');
     return `
     MATCH
     (n:RlayEntity {cid: "${entity.cid}"})-[r]-(m:RlayEntity)

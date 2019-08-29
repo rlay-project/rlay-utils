@@ -155,5 +155,20 @@ describe('Rlay_Individual', () => {
         });
       });
     });
+
+    context('multiple assertions', () => {
+      it('works as expected', async () => {
+        const objIndi = client.getEntityFromPayload(defaultPayload);
+        const searchResult = await client.Rlay_Individual.findByAssertion({
+          httpStatusCodeValueDataProperty: 200,
+          httpConnectionClass: true,
+          httpRequestsObjectProperty: objIndi
+        });
+        assert.equal(searchResult.asProperty.length, 1);
+        assert.equal(check.all(searchResult.asProperty.map(entity => {
+          return entity instanceof client.Rlay_Individual
+        })), true, 'search results are not Individuals');
+      });
+    });
   });
 });

@@ -62,13 +62,13 @@ class Rlay_Individual extends Entity {
 
   static async findByAssertion (assertion) {
     const schemaPayload = new SchemaPayload(this.client, assertion);
-    const assertionEntity = schemaPayload.schemaAssertions[0];
+    const assertionEntities = schemaPayload.schemaAssertions;
     const [propertyPayloads, assertionPayloads] = await Promise.all(
       [
         this.client.findEntityByCypher(queries.
-          individualsByEntityAssertion(assertionEntity, 'properties')),
+          individualsByEntityAssertion(assertionEntities, 'properties')),
         this.client.findEntityByCypher(queries.
-          individualsByEntityAssertion(assertionEntity, 'assertions')),
+          individualsByEntityAssertion(assertionEntities, 'assertions')),
       ]
     );
     return {

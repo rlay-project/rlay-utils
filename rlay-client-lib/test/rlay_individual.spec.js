@@ -357,6 +357,14 @@ describe('Rlay_Individual', () => {
       assert.equal(mockClient.findEntityByCypher.callCount, 2);
     });
 
+    it('works with multiple assertions', async () => {
+      await testObj.findByAssertion({
+        httpMethodClass: true,
+        httpStatusCodeValueDataProperty: 200
+      });
+      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+    });
+
     it('returns an object splitting results into .properties and .assertions', async () => {
       const result = await testObj.findByAssertion({httpMethodClass: true});
       const formCheck = check.map(result,

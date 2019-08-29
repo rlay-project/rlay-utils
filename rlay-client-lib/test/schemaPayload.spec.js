@@ -256,17 +256,9 @@ describe('SchemaPayload', () => {
         });
 
         context('multiple', () => {
-          it('throws', async () => {
-            await assertThrowsAsync(async () => {
-              return createSchemaPayload({httpConnectionClass: [true, true]})
-            }, /failed to create schema payload assertions/u);
-          });
-
-          it('creates none', async () => {
-            await assertThrowsAsync(async () => {
-              return createSchemaPayload({httpConnectionClass: [true, true]})
-            }, /failed to create schema payload assertions/u);
-            assert.equal(mockClient.createEntity.callCount, 0);
+          it('creates them twice', async () => {
+            await createSchemaPayload({httpConnectionClass: [true, true]})
+            assert.equal(mockClient.createEntity.callCount, 2);
           });
         });
       });

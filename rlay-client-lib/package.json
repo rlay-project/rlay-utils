@@ -23,7 +23,6 @@
   },
   "devDependencies": {
     "jsdoc": "^3.6.2",
-    "lodash.clonedeep": "^4.5.0",
     "mocha": "^6.0.0",
     "simple-mock": "^0.8.0"
   },

@@ -347,4 +347,29 @@ describe('Rlay_Individual', () => {
       });
     });
   });
+
+  describe('.findByAssertion', () => {
+    beforeEach(() => mockFindEntity(testObj.client, true));
+    beforeEach(async () => testObj.create({httpMethodClass: true}));
+
+    it('calls out to the client to resolve the CIDs', async () => {
+      await testObj.findByAssertion({httpMethodClass: true});
+      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+    });
+
+    it('works with multiple assertions', async () => {
+      await testObj.findByAssertion({
+        httpMethodClass: true,
+        httpStatusCodeValueDataProperty: 200
+      });
+      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+    });
+
+    it('returns an object splitting results into .properties and .assertions', async () => {
+      const result = await testObj.findByAssertion({httpMethodClass: true});
+      const formCheck = check.map(result,
+        { asAssertion: check.array, asProperty: check.array });
+      assert.equal(check.all(Object.values(formCheck)), true, 'wrong result format');
+    });
+  });
 });

@@ -23,6 +23,9 @@ const findEntityKey = (schema, cid) => {
       searchResult = key;
     }
   });
+  if (searchResult === null) {
+    throw new Error('no schema found for cid: ' + cid);
+  }
   return searchResult;
 }
 

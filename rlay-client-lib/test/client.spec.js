@@ -5,6 +5,8 @@ const RlayEntities = require('../src/rlay');
 const { Negative } = require('../src/negative');
 const { mockClient, mockCreateEntity } = require('./mocks/client');
 const EntityMetaFactory = require('../src/entityMetaFactory');
+const { SchemaPayload } = require('../src/schemaPayload.js');
+const { Payload } = require('../src/payload.js');
 const payloads = require('./assets/payloads');
 const { cids } = require('./assets');
 
@@ -29,12 +31,20 @@ describe('Client', () => {
       });
     });
 
-    it('should have `Rlay_Individual` also exposed as `Individual', async () => {
+    it('has `Rlay_Individual` also exposed as `Individual', async () => {
       assert.equal(client.Individual, client.Rlay_Individual);
     });
 
-    it('should have `Entity` exposed', async () => {
+    it('has `Entity` exposed', async () => {
       assert.equal(client.Entity, Entity);
+    });
+
+    it('has `SchemaPayload` exposed', async () => {
+      assert.equal(client.SchemaPayload, SchemaPayload);
+    });
+
+    it('has `Payload` exposed', async () => {
+      assert.equal(client.Payload, Payload);
     });
 
     it('should have set the `.client` for all Rlay Entities', async () => {

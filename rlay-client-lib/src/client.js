@@ -5,6 +5,8 @@ const rlay = require('@rlay/web3-rlay');
 const RlayEntities = require('./rlay');
 const EntityMetaFactory = require('./entityMetaFactory');
 const RlayOntology = require('@rlay/ontology');
+const { SchemaPayload } = require('./schemaPayload');
+const { Payload } = require('./payload');
 const { Negative } = require('./negative');
 const { mix } = require('mixwith');
 
@@ -40,6 +42,8 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
 
     this.rlay = rlay;
     this.rlayOntology = RlayOntology;
+    this.SchemaPayload = SchemaPayload;
+    this.Payload = Payload;
     this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
     this.readLimit = pLimit(this.config.readLimit);

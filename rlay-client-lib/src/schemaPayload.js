@@ -167,7 +167,7 @@ class SchemaPayload {
     this.schemaAssertions.forEach(entity => {
       const propertyType = schemaTypeMapping[entity.type];
       if (propertyType) {
-        newIndividualPayload[propertyType].push(entity.remoteCid);
+        newIndividualPayload[propertyType].push(entity.cid);
       }
     });
     return newIndividualPayload.toJson();

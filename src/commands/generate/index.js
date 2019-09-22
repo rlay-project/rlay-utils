@@ -2,7 +2,6 @@
 
 import fs from 'fs-extra';
 import path from 'path';
-//import esformatter from 'esformatter';
 import Generator from './generator.js';
 import { seedFromFile } from './seedFileUtils.js';
 

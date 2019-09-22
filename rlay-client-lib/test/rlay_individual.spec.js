@@ -1,11 +1,17 @@
+/* eslint-env node, mocha */
 const assert = require('assert');
-const simple = require('simple-mock');
+const check = require('check-types');
 const { Rlay_Individual, Entity } = require('../src/rlay');
+const { mockClient, mockCreateEntity, mockFindEntity } = require('./mocks/client');
 const { Client } = require('../src/client');
-const { cids, schema } = require('./assets');
-const { UnknownEntityError } = require('../src/errors');
 
-let client;
+const assertThrowsAsync = async (fn, regExp) => {
+  let f = () => {};
+  try { await fn(); } catch(e) { f = () => {throw e}; } finally {
+    assert.throws(f, regExp);
+  }
+}
+
 const testObj = Rlay_Individual;
 const testObjType = 'Individual';
 const defaultPayload = {
@@ -20,32 +26,8 @@ const defaultPayload = {
 };
 
 describe('Rlay_Individual', () => {
-
-  beforeEach(() => {
-    client = new Client();
-    client.initSchema(cids, schema);
-    client.initClient();
-  })
-
-  beforeEach(() => {
-    // mock it
-    simple.mock(client, 'createEntity').callFn(
-      async () => Promise.resolve('0x0000')
-    );
-    /*
-    simple.mock(client, 'findEntityByCID').callFn(
-      async () => Promise.resolve({
-        type: 'DataProperty',
-        annotations:
-        [
-          '0x019580031b20d3af56cf7f30f98f5a22f969cf8cdc63de86eb11ca69dae9e8734d2d51abe8fb',
-          '0x019580031b20af5050cc610e78eac40165d6c199980f4f347d0f227d624a1160bf8d126301ed'
-        ],
-        superDataPropertyExpression: [] }
-      )
-    );
-    */
-  });
+  beforeEach(() => mockCreateEntity(mockClient));
+  beforeEach(() => mockFindEntity(mockClient));
 
   it('should inherit `Entity`', () => {
     assert.equal(testObj.prototype instanceof Entity, true);
@@ -59,163 +41,335 @@ describe('Rlay_Individual', () => {
     assert.equal(testObj.intermediate instanceof Object, true);
   });
 
-  describe('static .create', () => {
+  it('initiates an individual entity', () => {
+    const indi = new mockClient.Individual(mockClient, defaultPayload);
+    const indi2 = mockClient.Individual.from(defaultPayload);
+    const indi3 = mockClient.getEntityFromPayload(defaultPayload);
+    assert.equal(indi.cid,
+      '0x019680031b20c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470');
+    assert.equal(indi instanceof mockClient.Rlay_Individual, true);
+    assert.deepEqual(indi, indi2);
+    assert.deepEqual(indi, indi3);
+  });
 
-    const payload = {
+  describe('static .create', () => {
+    const createDefault = {
       httpConnectionClass: true,
       httpEntityHeaderClass: true
     };
-    let result;
-    let callArg;
-
-    beforeEach(async () => {
-      result = await testObj.create(payload);
-      callArg = client.createEntity.lastCall.arg;
-    });
 
     it('should call `client.createEntity` to create the Entity', async () => {
-      assert.equal(client.createEntity.callCount, 3);
+      const result = await testObj.create(createDefault);
+      const callArg = mockClient.createEntity.lastCall.arg;
+      assert.equal(mockClient.createEntity.callCount, 3);
     });
 
+    it('should call `client.createEntity` with correct payloads for assertions', async () => {
+      const result = await testObj.create(createDefault);
+      const callArgs = mockClient.createEntity.calls.slice(0, 2).map(c => c.args);
+      const expected = [
+        [
+          {
+            annotations: [],
+            subject: '0x00',
+            class: '0x018080031b204691534dff630c4482c3b92a7521a1138c4621af6618497bbc052136064b7333',
+            type: 'ClassAssertion'
+          }
+        ],
+        [
+          {
+            annotations: [],
+            subject: '0x00',
+            class: '0x018080031b20294e1a2e4c2b7dbcd0f1427dc4691333eabe9749b161bbdf648c0ffe8fb93cb9',
+            type: 'ClassAssertion'
+          }
+        ]
+      ];
+      assert.deepEqual(callArgs, expected);
+    })
+
     it('should call `client.createEntity` with the correct payload', async () => {
-      const target = JSON.stringify(Object.assign(
-        Object.assign({}, defaultPayload),
-        { class_assertions: ['0x0000', '0x0000'] }
-      ));
-      assert.equal(JSON.stringify(callArg), target);
+      const result = await testObj.create(createDefault);
+      const callArg = mockClient.createEntity.lastCall.arg;
+      const target = { ...defaultPayload,
+        ...{
+          class_assertions: [
+            '0x019880031b209da9db38ae4f6bdf949b76be505d22d45181d2e2e139f24a082d9e4544698623',
+            '0x019880031b208f7396cbe61cfd8b823cfc20f162484f52e958029fe5c7c69f63dbf6538b7f5e'
+          ]
+        }};
+      assert.deepEqual(callArg, target);
     });
 
     it('should return an `Entity` instance', async () => {
+      const result = await testObj.create(createDefault);
+      const callArg = mockClient.createEntity.lastCall.arg;
       assert.equal(result instanceof testObj, true);
       assert.equal(result.client instanceof Client, true);
       assert.equal(result.payload instanceof Object, true);
       assert.equal(typeof result.cid, 'string');
     });
 
-    context('without custom defaults', () => {
+    context('ClassAssertion', () => {
+      it('sets no special attribute', async () => {
+        const result = await testObj.create({httpConnectionClass: true});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'ClassAssertion');
+        assert.equal(callArg.subject, '0x00');
+      });
+    });
 
-      beforeEach(async () => {
-        result = await testObj.create();
-        callArg = client.createEntity.lastCall.arg;
+    context('DataPropertyAssertion', () => {
+      it('sets the correct target attribute', async () => {
+        const result = await testObj.create({httpStatusCodeValueDataProperty: 200});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'DataPropertyAssertion');
+        assert.equal(callArg.subject, '0x00');
+        assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
+      });
+    });
+
+    context('ObjectPropertyAssertion', () => {
+      context('individual entity with remote cid', () => {
+        it('sets the correct target attribute', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          const result = await testObj.create({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[0].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, '0x00');
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid)
+        });
+
+        it('does not create the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          await testObj.create({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 2);
+        });
       });
 
-      it ('should use base defaults', async () => {
-        const target = JSON.stringify(defaultPayload);
-        assert.equal(JSON.stringify(callArg), target);
-      })
+      context('individual entity without remote cid', () => {
+        it('sets the correct target attribute', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          const result = await testObj.create({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[1].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, '0x00');
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid);
+        });
 
+        it('creates the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          await testObj.create({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 3);
+        });
+      });
+
+      context('invalid input', () => {
+        it('throws', async () => {
+          const fn = async () => testObj.create({httpRequestsObjectProperty: '123'})
+          await assertThrowsAsync(fn, /failed to create individual/u);
+        });
+      });
+    });
+
+    context('without custom defaults', () => {
+      it('should use base defaults', async () => {
+        await testObj.create();
+        const callArg = mockClient.createEntity.lastCall.arg;
+        assert.deepEqual(callArg, defaultPayload);
+      });
     });
 
     context('with wrong params', () => {
-
-      beforeEach(async () => {
-        result = await testObj.create({doesNotExist: '123'});
-        callArg = client.createEntity.lastCall.arg;
+      it('throws', async () => {
+        const fn = async () => testObj.create({doesNotExist: '123'})
+        await assertThrowsAsync(fn, /failed to create individual/u);
       });
-
-      it('should use base defaults', async () => {
-        const target = JSON.stringify(defaultPayload);
-        assert.equal(JSON.stringify(callArg), target);
-      });
-
     });
-
   });
 
-  describe('static .find', () => {
-
-    const payload = {
+  describe('.assert', () => {
+    const assertDefault = {
       httpConnectionClass: true,
       httpEntityHeaderClass: true
     };
-    let instance;
-    let result;
-    let callArg;
+    let indi;
+    before(async () => indi = await testObj.create({httpStatusCodeValueDataProperty: 200}));
 
-    beforeEach(async () => {
-      instance = await testObj.create();
-      result = await instance.assert(payload);
-      callArg = client.createEntity.lastCall.arg;
+    it('should call `client.createEntity` to create the assertions', async () => {
+      await indi.assert(assertDefault);
+      assert.equal(mockClient.createEntity.callCount, 2);
     });
 
-    context('with CID', () => {
+    it('should call `client.createEntity` with correct payloads for assertions', async () => {
+      await indi.assert(assertDefault);
+      const callArgs = mockClient.createEntity.calls.slice(0, 2).map(c => c.args);
+      const expected = [
+        [
+          {
+            annotations: [],
+            subject: indi.cid,
+            class: '0x018080031b204691534dff630c4482c3b92a7521a1138c4621af6618497bbc052136064b7333',
+            type: 'ClassAssertion'
+          }
+        ],
+        [
+          {
+            annotations: [],
+            subject: indi.cid,
+            class: '0x018080031b20294e1a2e4c2b7dbcd0f1427dc4691333eabe9749b161bbdf648c0ffe8fb93cb9',
+            type: 'ClassAssertion'
+          }
+        ]
+      ];
+      assert.deepEqual(callArgs, expected);
+    })
 
-      beforeEach(async () => {
-        result = await testObj.find('0xabc');
-      });
-
-      it('should call `client.findEntityByCID` to find the `Entity`', async () => {
-        assert.equal(client.findEntityByCID.callCount, 1);
-      });
-
-      it('should return the correct `Entity` instance', async () => {
-        assert.equal(result instanceof client.Rlay_DataProperty, true);
+    it('should return assertion `Entity` instances', async () => {
+      const results = await indi.assert(assertDefault);
+      assert.equal(results.length, 2);
+      results.forEach(result => {
+        assert.equal(result instanceof mockClient.Rlay_ClassAssertion, true);
         assert.equal(result.client instanceof Client, true);
         assert.equal(result.payload instanceof Object, true);
         assert.equal(typeof result.cid, 'string');
       });
+    });
 
-      it('works', async () => {
-        //result = await client.findEntityByCypher('MATCH (n:RlayEntity) RETURN n.cid LIMIT 200');
+    context('ClassAssertion', () => {
+      it('sets no special attribute', async () => {
+        await indi.assert({httpConnectionClass: true});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'ClassAssertion');
+        assert.equal(callArg.subject, indi.cid);
+      });
+    });
+
+    context('DataPropertyAssertion', () => {
+      it('sets the correct target attribute for assertion', async () => {
+        await indi.assert({httpStatusCodeValueDataProperty: 200});
+        const callArg = mockClient.createEntity.calls[0].arg
+        assert.equal(callArg.type, 'DataPropertyAssertion');
+        assert.equal(callArg.subject, indi.cid);
+        assert.equal(mockClient.rlay.decodeValue(callArg.target), 200);
+      });
+    });
+
+    context('ObjectPropertyAssertion', () => {
+      context('individual entity with remote cid', () => {
+        it('sets the correct target attribute for assertion', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[0].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, indi.cid);
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid)
+        });
+
+        it('does not create the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          objIndi.remoteCid = objIndi.cid;
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 1);
+        });
       });
 
-    });
+      context('individual entity without remote cid', () => {
+        it('sets the correct target attribute for assertion', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          const callArg = mockClient.createEntity.calls[1].arg;
+          assert.equal(callArg.type, 'ObjectPropertyAssertion');
+          assert.equal(callArg.subject, indi.cid);
+          assert.notEqual(callArg.target, undefined);
+          assert.equal(callArg.target, objIndi.remoteCid);
+        });
 
-  });
+        it('creates the individual object first', async () => {
+          const objIndi = new mockClient.Rlay_Individual(mockClient, defaultPayload);
+          await indi.assert({httpRequestsObjectProperty: objIndi});
+          assert.equal(mockClient.createEntity.callCount, 2);
+        });
+      });
 
-  describe('.assert', () => {
+      context('invalid input', () => {
+        context('invalid assertion value', () => {
+          it('throws for ', async () => {
+            const fn = async () => indi.assert({httpRequestsObjectProperty: '123'})
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
 
-    const payload = {
-      httpConnectionClass: true,
-      httpEntityHeaderClass: true
-    };
-    let instance;
-    let result;
-    let callArg;
+        context('no input', () => {
+          it('throws', async () => {
+            const fn = async () => indi.assert()
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
 
-    beforeEach(async () => {
-      instance = await testObj.create();
-      result = await instance.assert(payload);
-      callArg = client.createEntity.lastCall.arg;
-    });
+        context('with wrong assertion key', () => {
+          it('throws', async () => {
+            const fn = async () => indi.assert({doesNotExist: '123'})
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
 
-    it('should call `client.createEntity` to create the `Assertion`(s)', async () => {
-      assert.equal(client.createEntity.callCount, 3);
-    });
-
-    it('have `Individual.cid` as `subject` for `Assertion`(s)', async () => {
-      assert.equal(callArg.subject, instance.cid);
-    });
-
-  });
-
-  describe('.fetch', () => {
-
-    beforeEach(async () => {
-      result = await testObj.find(
-        '0x019680031b20db6129844ab16f3eef12d155d910ac204849e984c7770ced6daf60d35bcc5e40'
-      );
-    });
-
-    it('does', async () => {
-      //console.log(client.schema);
-      await result.fetch();
-      delete result.client;
-      console.log(result.type);
-      const dpa = result.annotations[0];
-      await dpa.fetch();
-      delete dpa.client;
-      const dp = dpa.property;
-      await dp.fetch();
-      delete dp.client;
-      const a1 = dp.annotations[0];
-      const a2 = dp.annotations[1];
-      await Promise.all([a1.fetch(), a2.fetch()]);
-      delete a1.client;
-      delete a2.client;
-      console.log(a1);
-      console.log(a2);
+        context('individual entity without remote cid', () => {
+          it('throws', async () => {
+            const indi = testObj.from({httpRequestsObjectProperty: 200});
+            const fn = async () => indi.assert({httpStatusCodeValueDataProperty: 201})
+            await assertThrowsAsync(fn, /failed to create assertion/u);
+          });
+        });
+      });
     });
   });
 
+  describe('.resolve', () => {
+    beforeEach(() => mockFindEntity(testObj.client, true));
+
+    it('calls out to the client to resolve the CIDs', async () => {
+      const indi = await testObj.create({httpMethodClass: true});
+      await indi.resolve();
+      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+    });
+
+    describe('.fetch', () => {
+      it('is deprecated and calls .resolve', async () => {
+        const indi = await testObj.create();
+        assert.deepEqual(await indi.fetch(), await indi.resolve());
+      });
+    });
+  });
+
+  describe('.findByAssertion', () => {
+    beforeEach(() => mockFindEntity(testObj.client, true));
+    beforeEach(async () => testObj.create({httpMethodClass: true}));
+
+    it('calls out to the client to resolve the CIDs', async () => {
+      await testObj.findByAssertion({httpMethodClass: true});
+      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+    });
+
+    it('works with multiple assertions', async () => {
+      await testObj.findByAssertion({
+        httpMethodClass: true,
+        httpStatusCodeValueDataProperty: 200
+      });
+      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+    });
+
+    it('returns an object splitting results into .properties and .assertions', async () => {
+      const result = await testObj.findByAssertion({httpMethodClass: true});
+      const formCheck = check.map(result,
+        { asAssertion: check.array, asProperty: check.array });
+      assert.equal(check.all(Object.values(formCheck)), true, 'wrong result format');
+    });
+  });
 });

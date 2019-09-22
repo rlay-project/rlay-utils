@@ -1,106 +1,80 @@
 const Entity = require('../entity/entity');
-
-const schemaTypeMapping = {
-  'ClassAssertion': 'class_assertions',
-  'DataPropertyAssertion': 'data_property_assertions',
-  'ObjectPropertyAssertion': 'object_property_assertions',
-};
-
-const generateQuery = (subjectCID, relType) => {
-   //const queryOPA = `${_queryBase}-(m:ObjectPropertyAssertion)-[:target]-(o) WITH m.cid + COLLECT(o.cid) AS cids UNWIND cids AS cid RETURN DISTINCT cid`;
-  let whereClause = 'type(r) = "subject"';
-  if (relType === 'properties') {
-    whereClause = 'type(r) <> "subject"';
-  }
-  return `
-    MATCH
-      (n:RlayEntity {cid: "${subjectCID}"})-[r]-(m:RlayEntity)
-    OPTIONAL MATCH
-      (m:RlayEntity)-[:target]-(o:RlayEntity)
-    WHERE
-      ${whereClause}
-    WITH
-      m.cid + COLLECT(o.cid) AS cids
-    UNWIND cids AS cid
-    RETURN DISTINCT cid
-  `;
-}
-
-const findEntityKey = (schema, cid) => {
-  let searchResult = null;
-  Object.keys(schema).forEach(key => {
-    if (schema[key].cid === cid) {
-      searchResult = key;
-    }
-  });
-  return searchResult;
-}
+const { SchemaPayload } = require('../schemaPayload');
+const VError = require('verror');
+const check = require('check-types');
+const queries = require('../cypherQueries');
+const debug = require('../debug').extend('entity');
 
 class Rlay_Individual extends Entity {
-  static async create (properties = {}) {
-    const propertyKeys = Object.keys(properties);
-    const propertyEntityPromises = [];
-    const entityValue = {};
-
-    propertyKeys.forEach(propertyName => {
-      if (this.client[propertyName]) {
-        propertyEntityPromises.push(this.client[propertyName].create());
-      }
-    });
-
-    const propertyEntities = await Promise.all(propertyEntityPromises);
-
-    // setup `entityValue`
-    propertyEntities.forEach(entityInstance => {
-      const propertyType = schemaTypeMapping[entityInstance.type];
-      if (propertyType) {
-        if (!entityValue[propertyType]) entityValue[propertyType] = [];
-        entityValue[propertyType].push(entityInstance.cid);
-      }
-    });
-
-    return super.create(entityValue);
+  static async create (schemaPayloadObject = {}) {
+    try {
+      const schemaPayload = new SchemaPayload(this.client, schemaPayloadObject);
+      await schemaPayload.create();
+      return super.create(schemaPayload.toIndividualEntityPayload());
+    } catch (e) {
+      const invalidProperty = new VError(e, 'invalid schema payload object');
+      throw new VError(invalidProperty, 'failed to create individual');
+    }
   }
 
-  _createPretty (payloads) {
-    const resultObj = {};
-    payloads.forEach(payload => {
-      if (payload.type === 'ClassAssertion') {
-        // find schema Key
-        const entityKey = findEntityKey(this.client.schema, payload.class);
-        resultObj[entityKey] = true;
-      } else if (payload.type === 'DataPropertyAssertion') {
-        // find schema Key
-        const entityKey = findEntityKey(this.client.schema, payload.property);
-        resultObj[entityKey] = this.client.rlay.decodeValue(payload.target)
-      } else if (payload.type === 'ObjectPropertyAssertion') {
-        // find schema Key
-        const entityKey = findEntityKey(this.client.schema, payload.property);
-        const target = payloads.filter(p => p.cid === payload.target).pop();
-        if (target) {
-          const EntityClass = this.client[`Rlay_${target.type}`];
-          resultObj[entityKey] = new EntityClass(this.client, target, target.cid);
-        } else {
-          resultObj[entityKey] = target;
-        }
-      }
-    });
-    return resultObj;
+  /**
+   * Create the class, data, object, and other assertions for an `Individual`
+   *
+   * @async
+   * @param {Object} assertions - The non-inherent properties of the individual
+   * @returns {String[]} - The `CID`s of the assertions
+   */
+  async assert (assertions) {
+    debug.extend(`assert${this.type}`)(`...${this.cid.slice(-8)}`);
+    if(check.undefined(this.remoteCid)) {
+      const notObject = new Error('expected individual to be a remote entity and have a .remoteCid. Make sure you created the individual');
+      const invalidInput = new VError(notObject, 'invalid individual');
+      throw new VError(invalidInput, 'failed to create assertions');
+    }
+    try {
+      const schemaPayload = new SchemaPayload(this.client, assertions);
+      const result = await schemaPayload.create({subject: this.remoteCid});
+      return result;
+    } catch (e) {
+      const invalidProperty = new VError(e, 'invalid schema payload object input');
+      throw new VError(invalidProperty, 'failed to create assertions');
+    }
   }
 
-  async fetch () {
-    const [propertyPayloads, assertionPayloads] = await Promise.all([
-      this.client.findEntityByCypher(generateQuery(this.cid, 'properties')),
-      this.client.findEntityByCypher(generateQuery(this.cid, 'assertions')),
-    ]);
+  async resolve () {
+    const [propertyPayloads, assertionPayloads] = await Promise.all(
+      [
+        this.client.findEntityByCypher(queries.
+          individualResolve(this, 'properties')),
+        this.client.findEntityByCypher(queries.
+          individualResolve(this, 'assertions')),
+      ]
+    );
     Object.assign(
       this,
-      Object.assign(
-        { properties: this._createPretty(propertyPayloads) },
-        this._createPretty(assertionPayloads)
-      )
+      {
+        properties: SchemaPayload.fromPayloads(this.client, propertyPayloads).payload,
+        ...SchemaPayload.fromPayloads(this.client, assertionPayloads).payload
+      },
     );
     return this;
+  }
+
+  static async findByAssertion (assertion) {
+    const schemaPayload = new SchemaPayload(this.client, assertion);
+    const assertionEntities = schemaPayload.schemaAssertions;
+    const [propertyPayloads, assertionPayloads] = await Promise.all(
+      [
+        this.client.findEntityByCypher(queries.
+          individualsByEntityAssertion(assertionEntities, 'properties')),
+        this.client.findEntityByCypher(queries.
+          individualsByEntityAssertion(assertionEntities, 'assertions')),
+      ]
+    );
+    return {
+      asProperty: propertyPayloads.map(payload => this.client.getEntityFromPayload(payload)),
+      asAssertion: assertionPayloads.map(payload => this.client.getEntityFromPayload(payload))
+    }
   }
 }
 

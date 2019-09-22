@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+
+  rlay_client:
+    image: rlay-client-rlay-utils-test
+    environment:
+      RUST_LOG: rlay_client=trace
+    ports:
+      - "127.0.0.1:8546:8546"
+    links:
+      - neo4j:neo4j
+    restart: on-failure
+
+  neo4j:
+    image: neo4j:3.4.8
+    environment:
+      NEO4J_AUTH: none
+    ports:
+      - "127.0.0.1:7474:7474"

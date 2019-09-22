@@ -1,19 +1,22 @@
 {
   "name": "@rlay/rlay-client-lib",
-  "version": "0.2.0-pre.8",
+  "version": "0.2.0-pre.12",
   "author": "Michael Hirn <michael.j.hirn@gmail.com>",
   "license": "Apache-2.0",
   "main": "src/client.js",
   "scripts": {
     "test": "mocha",
+    "test:dockerimage": "docker build --tag rlay-client-rlay-utils-test test/integration/docker",
+    "test:integration": "node test/integration/integration_tests.js",
     "docs": "jsdoc src/* -d ./docs"
   },
   "dependencies": {
     "@rlay/ontology": "0.1.0-alpha.1",
     "@rlay/web3-rlay": "^0.1.14",
+    "check-types": "^9.0.1",
     "debug": "^4.1.1",
     "mixwith": "^0.1.1",
-    "object-path": "^0.11.4",
+    "p-iteration": "^1.1.8",
     "p-limit": "^2.1.0",
     "verror": "^1.10.0",
     "web3": "1.0.0-beta.35"

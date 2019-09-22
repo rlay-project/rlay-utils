@@ -1,9 +1,14 @@
 const Web3 = require('web3');
+const { ClientInterface } = require('./interfaces/client');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
-const EntityMetaFactory = require('./entity/meta-factory');
 const RlayEntities = require('./rlay');
+const EntityMetaFactory = require('./entityMetaFactory');
 const RlayOntology = require('@rlay/ontology');
+const { SchemaPayload } = require('./schemaPayload');
+const { Payload } = require('./payload');
+const { Negative } = require('./negative');
+const { mix } = require('mixwith');
 
 class Config {
   constructor() {
@@ -19,7 +24,7 @@ class Config {
 /**
  * The `Client`, ORM, and main interface for users
  */
-class Client {
+class Client extends mix(EntityMetaFactory).with(ClientInterface) {
 
   /**
    * Create a new Client instance
@@ -27,6 +32,7 @@ class Client {
    * @param {Config} config - The configuration for the client
    */
   constructor (config = {}) {
+    super();
     this.config = new Config();
     this.initConfig(config);
 
@@ -36,10 +42,11 @@ class Client {
 
     this.rlay = rlay;
     this.rlayOntology = RlayOntology;
+    this.SchemaPayload = SchemaPayload;
+    this.Payload = Payload;
     this.schema = {};
     this.storeLimit = pLimit(this.config.storeLimit);
     this.readLimit = pLimit(this.config.readLimit);
-    this.entityMetaFactory = new EntityMetaFactory(this);
 
     // set client for RlayEntities
     Object.keys(RlayEntities).forEach(entity => {
@@ -75,11 +82,21 @@ class Client {
     Object.assign(this.config, config);
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  isNegative (value) {
+    return value instanceof Negative
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  negative (obj) {
+    return new Negative(obj);
+  }
+
   initSchema (schemaCIDs, schema) {
     this.schema = Object.assign(this.schema, schemaCIDs);
     // transform this.schema['abc'] = "0x00xx" to
     //           this.schema['abc'] = { cid: "0x00xx" }
-    Object.keys(this.schema).forEach(key => {
+    Object.keys(schemaCIDs).forEach(key => {
       const cid = this.schema[key];
       this.schema[key] = { cid };
     });
@@ -91,8 +108,7 @@ class Client {
           assertion.assertion
         );
         // convert to proper Rlay Entity
-        this.schema[assertion.key] = this.entityMetaFactory.fromType(
-          this.schema[assertion.key].type,
+        this.schema[assertion.key] = this.getEntityFromPayload(
           this.schema[assertion.key]
         );
       }
@@ -103,7 +119,7 @@ class Client {
     Object.keys(this.schema).forEach(key => {
       const schemaEntity = this.schema[key];
       try {
-        this[key] = this.entityMetaFactory.fromSchema(schemaEntity);
+        this[key] = this.fromSchema(schemaEntity);
       } catch (_) { }
     });
   }

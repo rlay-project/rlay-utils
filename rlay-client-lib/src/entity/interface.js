@@ -1,7 +1,8 @@
-const { UnknownEntityError } = require('../errors');
-const logger = require('../logger')(__filename);
-const objectPath = require('object-path');
+const { ClientInterface } = require('../interfaces/client');
+const { Payload } = require('../payload');
+const check = require('check-types');
 const VError = require('verror');
+const debug = require('../debug').extend('entity');
 
 /**
  * Interface Class for Entity instances (non-static methods)
@@ -16,22 +17,44 @@ class EntityInterface {
    * Create a new EntityInterface instance
    *
    * @param {Client} client - a `Client` instance
-   * @param {object} payload - the `EntityObject` that the `CID` represents
+   * @param {object} payloadObject - the `EntityObject` that the `CID` represents
    */
-  constructor (client, payload) {
-    this.client = client;
-    this._cidRemote = payload.cid;
-    this.payload = payload;
-    this.type = this.payload.type;
+  constructor (client, payloadObject) {
+    // setup client for this entity instance
+    if (check.instance(client, ClientInterface)) {
+      this.client = client;
+    } else {
+      throw new Error('invalid client. expected client to be instance of ClientInterface');
+    }
+
+    // setup payload
+    const payload = new Payload(payloadObject, () => true);
+    this.remoteCid = payload.removeCid();
     try {
-      this.cid = client.getEntityCid(this.payload);
+      this.payload = new Payload(payload.toJson(), this.client.getEntityCid.bind(this.client));
     } catch (e) {
-      throw new VError(e, 'Invalid Payload: "%s"', JSON.stringify(this.payload));
+      throw new VError(e, 'failed to create new entity');
+    }
+    this.cid = this.client.getEntityCid(this.payload);
+
+    // throw error if there is weird cid mismatch
+    if (check.not.undefined(this.remoteCid) && this.remoteCid !== this.cid) {
+      const remoteCid = `remoteCid(${this.remoteCid})`;
+      const payloadCid = `payloadCid(${this.cid})`;
+      const cidMismatchError = new Error(`mismatch ${remoteCid} <> ${payloadCid}`);
+      const invalidCidsError = new VError(cidMismatchError, 'invalid cids');
+      throw new VError(invalidCidsError, 'failed to instantiate new entity');
+    }
+
+    // debug and log
+    if (check.not.undefined(this.remoteCid)) {
+      debug.extend(`newRemote${this.type}`)(this.remoteCid);
+    } else {
+      debug.extend(`newLocal${this.type}`)(this.cid);
     }
   }
 
   set payload (payload) {
-    Reflect.deleteProperty(payload, 'cid');
     this._payload = payload;
   }
 
@@ -39,57 +62,29 @@ class EntityInterface {
     return this._payload;
   }
 
-  /**
-   * Create the class, data, object, and other assertions for an `Individual`
-   *
-   * @async
-   * @param {Object} assertions - The non-inherent properties of the individual
-   * @returns {String[]} - The `CID`s of the assertions
-   */
-  async assert (assertions = {}) {
-    const assertionKeys = Object.keys(assertions);
-    const assertionPromises = [];
+  set remoteCid (cid) {
+    this._remoteCid = cid;
+  }
 
-    assertionKeys.forEach(propertyName => {
-      if (this.client[propertyName]) {
-        assertionPromises.push(
-          this.client[propertyName].create({subject: this.cid})
-        );
-      } else {
-        throw new UnknownEntityError(
-          `No schema entity exists for: '${propertyName}'. Make sure you seeded it.`
-        );
-      }
-    });
+  get remoteCid () {
+    return this._remoteCid;
+  }
 
-    const start = Date.now();
-    logger.debug(`Storing Assertion(s) (${start}) ...`);
-
-    const assertionEntities = await Promise.all(assertionPromises);
-    const CIDs = assertionEntities.map(e => e.cid);
-
-    logger.debug(`Stored Assertion(s) (${start} -> ${CIDs}) in ${Date.now() - start}ms`);
-    return assertionEntities;
+  get type () {
+    return this.payload.type;
   }
 
   /**
-   * Manages a payload key e.g. annotations, target, or subject etc. and
-   * either finds (resolves) the CID or decodes the value/target.
+   * Create the entity on the server by sending its payload
    *
-   * @return [Array<Array<string, Object>>] - Array of Array with path and Object
+   * @async
+   * @returns {Promise<String>|Error} - Resolves to the CID of the entities payload
    */
-  _schemaKeyHandler (schemaKey, schema, find, decodeValue) {
-    if (schema[schemaKey] instanceof Array) {
-      // is array of CIDs
-      return schema[schemaKey].map((element, i) => {
-        return [`${schemaKey}.${i}`, find(element)];
-      });
-    } else if(['value', 'target'].includes(schemaKey)) {
-      // is encoded value
-      return [schemaKey, decodeValue(schema[schemaKey])];
-    }
-    // is CID
-    return [schemaKey, find(schema[schemaKey])];
+  async create () {
+    const cid = await this.client.createEntity(this.payload);
+    this.remoteCid = cid;
+    debug.extend(`create${this.type}`)(`...${this.remoteCid.slice(-8)}`);
+    return this.remoteCid;
   }
 
   /**
@@ -98,24 +93,22 @@ class EntityInterface {
    *
    * @async
    */
+  async resolve () {
+    /* eslint-disable-next-line no-unused-vars */
+    const decoder = this.client.rlay.decodeValue.bind(this.client.rlay);
+    const resolver = this.client.Entity.find.bind(this.client.Entity);
+    const resolvedPayload = await this.payload.clone().
+      decode(decoder).
+      resolveCids(resolver);
+    resolvedPayload.removeType();
+    Object.assign(this, resolvedPayload);
+    debug.extend(`resolve${this.type}`)(`...${this.remoteCid.slice(-8)}`);
+    return this;
+  }
+
   async fetch () {
-    const { type, cid, ...schema } = this.payload;
-    // get the schema jobs
-    const schemaJobs = [...Object.keys(schema).map(schemaKey => {
-      return this._schemaKeyHandler(
-        schemaKey,
-        schema,
-        this.client.Individual.find.bind(this.client.Individual),
-        this.client.rlay.decodeValue.bind(this.client.rlay)
-      );
-    })];
-    // split the jobs
-    const schemaPath = schemaJobs.map(job => job[0]);
-    const schemaPromiseResults = await Promise.all(schemaJobs.map(job => job[1]));
-    // attach the handled payload to the entity instance
-    schemaPath.forEach((path, i) => {
-      objectPath.set(this, path, schemaPromiseResults[i]);
-    });
+    console.warn('DEPRECATED: use `.resolve`. `.fetch` will be retired in the next minor release');
+    return this.resolve();
   }
 }
 

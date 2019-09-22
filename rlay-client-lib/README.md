@@ -29,6 +29,64 @@ client.Individual.find('123...789');
 client.Entity.find('123...789');
 ```
 
+### Instantiate a new Entity
+
+Assume payload is valid and of type `DataProperty`
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.Rlay_DataProperty(client, payload);
+```
+
+or
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.Rlay_DataProperty.from(payload);
+```
+
+or (recommended)
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.getEntityFromPayload(payload);
+
+assert(entity instanceof client.Rlay_DataProperty);
+```
+
+### Create a new Entity
+
+Assume payload is valid and of type `DataProperty`
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = new client.Rlay_DataProperty(client, payload);
+await entity.create();
+```
+
+or
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = await client.Rlay_DataProperty.create(payload);
+```
+
+or (recommended)
+
+```js
+const client = require('./generated/rlay-client');
+
+const entity = await client.createEntityFromPayload(payload);
+
+assert(entity instanceof client.Rlay_DataProperty);
+assert.equal(entity.remoteCid, entity.cid);
+```
+
 ### Create an Individual with inherent properties aka. properties
 
 The properties of an individual can only be specified at the creation-time of the `Individual` and are like any other operations immutable.
@@ -36,13 +94,11 @@ The properties of an individual can only be specified at the creation-time of th
 ```javascript
 const client = require('./generated/rlay-client');
 
-const properties = {
+// Create a new Individual with inherent properties
+await client.Individual.create({
   nameOfApplicationSpecificEntity: true,
   anotherApplicationSpecificEntity: 45,
-};
-
-// Create a new Individual
-client.Individual.create(properties);
+});
 ```
 
 ### Create non-inherent properties aka. assertions about an Individual
@@ -103,3 +159,11 @@ console.log(result1.nameOfApplicationSpecificEntity !== undefined); // true
   - [ ] documentation
   - [ ] tests
 - [ ] Integration tests
+
+## Testing
+
+All tests are unit tests and do not require a running rlay-client server. All tests are importing the `Rlay MockClient`.
+
+### `Rlay MockClient`
+
+Located at `[./test/mocks/client.js](./tests/mocks/client.js)` it mocks all functions that usually would call out to the rlay-client server.

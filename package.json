@@ -43,7 +43,7 @@
     "p-limit": "^2.2.0",
     "progress": "^2.0.0",
     "redis": "^2.8.0",
-    "simple-jsonrpc-js": "1.0.0",
+    "simple-jsonrpc-js": "1.0.1",
     "web3": "^1.0.0-beta.35",
     "ws": "^7.0.0",
     "yargs": "^13.2.4"

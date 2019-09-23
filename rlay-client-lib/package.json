@@ -22,7 +22,7 @@
     "web3": "^1.2.1"
   },
   "devDependencies": {
-    "jsdoc": "^3.6.2",
+    "jsdoc": "^3.6.3",
     "mocha": "^6.0.0",
     "simple-mock": "^0.8.0"
   },

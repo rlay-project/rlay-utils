@@ -2,7 +2,13 @@ const { Entity } = require('./entity');
 const check = require('check-types');
 const VError = require('verror');
 
-class EntityMetaFactory {
+interface EntityMetaFactoryInterface {
+  Rlay_Class?: any
+}
+
+export class EntityMetaFactory implements EntityMetaFactoryInterface {
+  Rlay_Class?: any;
+
   getEntityFactoryFromPayload (payload) {
     if (check.not.string(payload.type)) {
       const typeMissing = new Error('payload has not type specified');
@@ -111,5 +117,3 @@ class EntityMetaFactory {
     return newClass[newClassName];
   }
 }
-
-module.exports = EntityMetaFactory;

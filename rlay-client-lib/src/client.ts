@@ -3,37 +3,42 @@ const { ClientInterface } = require('./interfaces/client');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
 const RlayEntities = require('./rlay');
-const EntityMetaFactory = require('./entityMetaFactory');
+import { EntityMetaFactory } from './entityMetaFactory';
+import { IClientConfig, ClientConfig } from './clientConfig';
+import { CID } from './types';
 const RlayOntology = require('@rlay/ontology');
 const { SchemaPayload } = require('./schemaPayload');
 const { Payload } = require('./payload');
 const { Negative } = require('./negative');
 const { mix } = require('mixwith');
 
-class Config {
-  constructor() {
-    this.address = '0xc02345a911471fd46c47c4d3c2e5c85f5ae93d13';
-    this.backend = 'myneo4j';
-    this.RpcUrl = process.env.RPC_URL || 'http://localhost:8546';
-    this.storeLimit = 50;
-    this.readLimit = 50;
-    Object.seal(this);
-  }
+export interface IClient {
+  config: IClientConfig
+  web3: any
+  rlay: any
+  rlayOntology: any
+  // TODO
+  SchemaPayload: any
+  // TODO
+  Payload: any
+  schema: object
+  storeLimit: any
+  readLimit: any
 }
 
 /**
  * The `Client`, ORM, and main interface for users
  */
-class Client extends mix(EntityMetaFactory).with(ClientInterface) {
+export class Client extends mix(EntityMetaFactory).with(ClientInterface) {
 
   /**
    * Create a new Client instance
    *
    * @param {Config} config - The configuration for the client
    */
-  constructor (config = {}) {
+  constructor (config: IClientConfig = {}) {
     super();
-    this.config = new Config();
+    this.config = new ClientConfig();
     this.initConfig(config);
 
     this.web3 = new Web3(this.config.RpcUrl);
@@ -56,7 +61,7 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
     this.Individual = this.Rlay_Individual;
   }
 
-  async createEntity (entity) {
+  async createEntity (entity): Promise<CID> {
     return this.storeLimit(async () => {
       return this.rlay.store(this.web3, entity, { backend: this.config.backend });
     })
@@ -124,5 +129,3 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
     });
   }
 }
-
-module.exports = { Client, Config };

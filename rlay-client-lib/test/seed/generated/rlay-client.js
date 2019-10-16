@@ -1,5 +1,5 @@
 
-    const { Client } = require('../../../src/client');
+    const { Client } = require('../../../built/client');
     const map = new Map();
 
     const getClient = (config) => {

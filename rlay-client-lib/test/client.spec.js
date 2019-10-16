@@ -1,16 +1,17 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const check = require('check-types');
-const RlayEntities = require('../src/rlay');
-const { Negative } = require('../src/negative');
+const RlayEntities = require('../built/rlay');
+const { Negative } = require('../built/negative');
 const { mockClient, mockCreateEntity } = require('./mocks/client');
-const EntityMetaFactory = require('../src/entityMetaFactory');
-const { SchemaPayload } = require('../src/schemaPayload.js');
-const { Payload } = require('../src/payload.js');
+const EntityMetaFactory = require('../built/entityMetaFactory');
+const { SchemaPayload } = require('../built/schemaPayload.js');
+const { Payload } = require('../built/payload.js');
 const payloads = require('./assets/payloads');
 const { cids } = require('./assets');
 
-const { Entity,
+const {
+  Entity,
   Rlay_ClassAssertion,
   Rlay_DataPropertyAssertion,
   Rlay_ObjectPropertyAssertion } = RlayEntities;

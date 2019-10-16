@@ -22,9 +22,11 @@
     "web3": "^1.2.1"
   },
   "devDependencies": {
+    "@babel/core": "^7.6.4",
     "jsdoc": "^3.6.3",
     "mocha": "^6.2.1",
-    "simple-mock": "^0.8.0"
+    "simple-mock": "^0.8.0",
+    "typescript": "^3.6.4"
   },
   "peerDependencies": {}
 }

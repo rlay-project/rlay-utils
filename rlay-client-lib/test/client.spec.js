@@ -1,6 +1,9 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const check = require('check-types');
+const { KafkaClient, HighLevelProducer } = require('kafka-node');
+const sinon = require('sinon');
+const { Client } = require('../src/client.js');
 const RlayEntities = require('../src/rlay');
 const { Negative } = require('../src/negative');
 const { mockClient, mockCreateEntity } = require('./mocks/client');
@@ -54,6 +57,46 @@ describe('Client', () => {
           client[rlayEntityName].client === client,
           `${rlayEntityName} does not have '.client' set`
         );
+      });
+    });
+  });
+
+  describe('.createEntity', () => {
+    const rlayClient = new Client();
+    const kafkaClient = new KafkaClient();
+    const rlayKafkaConfig = {kafka: {
+      highLevelProducer: new HighLevelProducer(kafkaClient),
+      topicName: 'test' }};
+    const rlayClientKafka = new Client(rlayKafkaConfig);
+    let client, clientKafka, rlayStub, kafkaStub;
+    beforeEach(async () => client.createEntity(payloads.dataProperty));
+    afterEach(() => kafkaStub.resetHistory());
+    afterEach(() => rlayStub.resetHistory());
+
+    context('with Kafka client', () => {
+      before(() => {
+        client = rlayClientKafka
+        kafkaStub = sinon.stub(client.kafka.highLevelProducer, 'send').
+          callsFake((payload, cb) => cb())
+        rlayStub = sinon.stub(client.rlay, 'store')
+      });
+
+      it('also sends payload to Kafka', async () => {
+        assert(rlayStub.calledOnce);
+        assert(kafkaStub.calledOnce);
+        assert.deepEqual(kafkaStub.args[0][0], {
+          topic: client.config.kafka.topicName,
+          messages: JSON.stringify(payloads.dataProperty)
+        });
+      });
+    });
+
+    context('without Kafka client', () => {
+      before(() => client = rlayClient);
+
+      it('only sends payload to Rlay', async () => {
+        assert(rlayStub.calledOnce);
+        assert(kafkaStub.notCalled);
       });
     });
   });

@@ -17,6 +17,7 @@ class Config {
     this.RpcUrl = process.env.RPC_URL || 'http://localhost:8546';
     this.storeLimit = 50;
     this.readLimit = 50;
+    this.kafka = undefined;
     Object.seal(this);
   }
 }
@@ -36,6 +37,7 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
     this.config = new Config();
     this.initConfig(config);
 
+    this.kafka = this.config.kafka;
     this.web3 = new Web3(this.config.RpcUrl);
     rlay.extendWeb3WithRlay(this.web3);
     this.web3.eth.defaultAccount = this.config.address;
@@ -57,8 +59,18 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 
   async createEntity (entity) {
+    const that = this;
     return this.storeLimit(async () => {
-      return this.rlay.store(this.web3, entity, { backend: this.config.backend });
+      const promises = [this.rlay.store(this.web3, entity, { backend: this.config.backend })]
+      if (this.kafka) {
+        promises[1] = new Promise((resolve) => {
+          that.kafka.highLevelProducer.send({
+            topic: this.kafka.topicName,
+            messages: JSON.stringify(entity)
+          }, resolve);
+        });
+      }
+      return Promise.all(promises);
     })
   }
 

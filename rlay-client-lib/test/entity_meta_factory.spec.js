@@ -1,6 +1,8 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const expect = require('chai').expect
+const { ClientBase } = require('../src/client.js');
+const generateClient = require('./seed/generated/generateRlayClient.js');
 const {
   Rlay_Class,
   Rlay_ClassAssertion,
@@ -10,16 +12,27 @@ const {
   Rlay_ObjectProperty,
   Rlay_ObjectPropertyAssertion } = require('../src/rlay');
 const intermediate = require('../src/rlay/intermediate');
-const { mockClient, mockCreateEntity } = require('./mocks/client');
+const {
+  stubCreateEntity,
+  stubFindEntityByCid,
+  stubFindEntityByCypher
+} = require('./mocks/client');
 const { EntityMetaFactory } = require('../src/entity');
 const payloads = require('./assets/payloads');
 
-let client;
-let testObj;
-
 describe('EntityMetaFactory', () => {
-  beforeEach(() => mockCreateEntity(mockClient));
-  beforeEach(() => testObj = mockClient);
+  let testObj, client;
+  let clientCreateEntityStub, clientFindEntityByCIDStub, clientFindEntityByCypherStub;
+  before(() => {
+    client = generateClient(new ClientBase());
+    testObj = client;
+    clientCreateEntityStub = stubCreateEntity(client);
+    clientFindEntityByCIDStub = stubFindEntityByCid(client);
+    clientFindEntityByCypherStub = stubFindEntityByCypher(client);
+  });
+  afterEach(() => clientCreateEntityStub.resetHistory());
+  afterEach(() => clientFindEntityByCIDStub.resetHistory());
+  afterEach(() => clientFindEntityByCypherStub.resetHistory());
 
   describe('.getEntityFactoryFromPayload', () => {
     it('returns the correct EntityFactory', () => {
@@ -63,26 +76,26 @@ describe('EntityMetaFactory', () => {
   describe('.getEntityFromPayload', () => {
     it(`returns correct entity instance`, () => {
       const entity = testObj.getEntityFromPayload(payloads.clone(payloads.dataProperty));
-      assert.equal(entity instanceof mockClient.Rlay_DataProperty, true);
+      assert.equal(entity instanceof client.Rlay_DataProperty, true);
     });
   });
 
   describe('.createEntityFromPayload', () => {
     it('returns correct entity instance', async () => {
       const entity = await testObj.createEntityFromPayload(payloads.clone(payloads.dataProperty));
-      assert.equal(entity instanceof mockClient.Rlay_DataProperty, true);
+      assert.equal(entity instanceof client.Rlay_DataProperty, true);
     });
 
     it('creates the entity via rlay-client server', async () => {
       await testObj.createEntityFromPayload(payloads.clone(payloads.dataProperty));
-      assert.equal(mockClient.createEntity.callCount, 1);
+      assert.equal(clientCreateEntityStub.callCount, 1);
     });
   });
 
   describe('.getNegativeAssertionFactoryFromSchema', () => {
     let customClassAssertion, rlayClassInstance;
     beforeEach(() => {
-      rlayClassInstance = mockClient.schema.httpConnectionClass;
+      rlayClassInstance = client.schema.httpConnectionClass;
       customClassAssertion = testObj.getNegativeAssertionFactoryFromSchema(
         rlayClassInstance);
     });
@@ -118,7 +131,7 @@ describe('EntityMetaFactory', () => {
       let customClassAssertion, rlayClassInstance;
       beforeEach(async () => {
         rlayClassInstance = await Rlay_Class.create();
-        rlayClassInstance = mockClient.schema.httpConnectionClass;
+        rlayClassInstance = client.schema.httpConnectionClass;
         customClassAssertion = testObj.fromSchema(rlayClassInstance);
       });
 

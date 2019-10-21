@@ -9,6 +9,7 @@ const { SchemaPayload } = require('./schemaPayload');
 const { Payload } = require('./payload');
 const { Negative } = require('./negative');
 const { mix } = require('mixwith');
+const check = require('check-types');
 
 class Config {
   constructor() {
@@ -25,7 +26,7 @@ class Config {
 /**
  * The `Client`, ORM, and main interface for users
  */
-class Client extends mix(EntityMetaFactory).with(ClientInterface) {
+class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
 
   /**
    * Create a new Client instance
@@ -91,6 +92,12 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 
   initConfig (config) {
+    if (config.kafka) {
+      if (!check.string(config.kafka.topicName) ||
+        !check.object(config.kafka.highLevelProducer)) {
+        throw new Error('invalid kafka config: expected topicName to be string and highLevelProducer to be an object');
+      }
+    }
     Object.assign(this.config, config);
   }
 
@@ -137,4 +144,4 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 }
 
-module.exports = { Client, Config };
+module.exports = { ClientBase, Config };

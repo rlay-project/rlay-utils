@@ -3,10 +3,10 @@ const assert = require('assert');
 const check = require('check-types');
 const { KafkaClient, HighLevelProducer } = require('kafka-node');
 const sinon = require('sinon');
-const { Client } = require('../src/client.js');
+const { ClientBase } = require('../src/client.js');
 const RlayEntities = require('../src/rlay');
 const { Negative } = require('../src/negative');
-const { mockClient, mockCreateEntity } = require('./mocks/client');
+const { mockClient } = require('./mocks/client');
 const EntityMetaFactory = require('../src/entityMetaFactory');
 const { SchemaPayload } = require('../src/schemaPayload.js');
 const { Payload } = require('../src/payload.js');
@@ -21,8 +21,6 @@ const { Entity,
 const client = mockClient;
 
 describe('Client', () => {
-  beforeEach(() => mockCreateEntity(client));
-
   describe('new', () => {
     it('should have the Rlay Entities exposed', async () => {
       // Remove `Entity` because it's prototype is not an instance of itself
@@ -54,7 +52,7 @@ describe('Client', () => {
       // Remove `Entity` because it's prototype is not an instance of itself
       Object.keys(RlayEntities).forEach(rlayEntityName => {
         assert(
-          client[rlayEntityName].client === client,
+          client[rlayEntityName].client instanceof ClientBase,
           `${rlayEntityName} does not have '.client' set`
         );
       });
@@ -62,12 +60,12 @@ describe('Client', () => {
   });
 
   describe('.createEntity', () => {
-    const rlayClient = new Client();
+    const rlayClient = new ClientBase();
     const kafkaClient = new KafkaClient();
     const rlayKafkaConfig = {kafka: {
       highLevelProducer: new HighLevelProducer(kafkaClient),
       topicName: 'test' }};
-    const rlayClientKafka = new Client(rlayKafkaConfig);
+    const rlayClientKafka = new ClientBase(rlayKafkaConfig);
     let client, clientKafka, rlayStub, kafkaStub;
     beforeEach(async () => client.createEntity(payloads.dataProperty));
     afterEach(() => kafkaStub.resetHistory());
@@ -88,6 +86,12 @@ describe('Client', () => {
           topic: client.config.kafka.topicName,
           messages: JSON.stringify(payloads.dataProperty)
         });
+      });
+
+      it('throws if invalid kafka config', () => {
+        assert.throws(() => {
+          const client = new ClientBase({ kafka: { topicName: 'test' }});
+        }, Error, /invalid kafka config/u);
       });
     });
 

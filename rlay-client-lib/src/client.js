@@ -71,7 +71,7 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
           }, resolve);
         });
       }
-      return Promise.all(promises);
+      return Promise.all(promises).then(results => results[0]);
     })
   }
 

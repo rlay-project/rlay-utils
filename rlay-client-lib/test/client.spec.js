@@ -1,7 +1,7 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const check = require('check-types');
-const { KafkaClient, HighLevelProducer } = require('kafka-node');
+const { Kafka } = require('kafkajs');
 const sinon = require('sinon');
 const { ClientBase } = require('../src/client.js');
 const RlayEntities = require('../src/rlay');
@@ -61,9 +61,9 @@ describe('Client', () => {
 
   describe('.createEntity', () => {
     const rlayClient = new ClientBase();
-    const kafkaClient = new KafkaClient();
+    const kafkaClient = new Kafka({brokers: ['localhost']});
     const rlayKafkaConfig = {kafka: {
-      highLevelProducer: new HighLevelProducer(kafkaClient),
+      producer: kafkaClient.producer(),
       topicName: 'test' }};
     const rlayClientKafka = new ClientBase(rlayKafkaConfig);
     let client, clientKafka, rlayStub, kafkaStub;
@@ -74,7 +74,7 @@ describe('Client', () => {
     context('with Kafka client', () => {
       before(() => {
         client = rlayClientKafka
-        kafkaStub = sinon.stub(client.kafka.highLevelProducer, 'send').
+        kafkaStub = sinon.stub(client.kafka.producer, 'send').
           callsFake((payload, cb) => cb())
         rlayStub = sinon.stub(client.rlay, 'store')
       });

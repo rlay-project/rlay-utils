@@ -64,14 +64,13 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
     return this.storeLimit(async () => {
       const promises = [this.rlay.store(this.web3, entity, { backend: this.config.backend })]
       if (this.kafka) {
-        promises[1] = new Promise((resolve) => {
-          that.kafka.highLevelProducer.send({
-            topic: this.kafka.topicName,
-            messages: JSON.stringify(entity)
-          }, resolve);
+        promises[1] = that.kafka.producer.send({
+          topic: this.kafka.topicName,
+          messages: [{ key: this.getEntityCid(entity), value: JSON.stringify(entity) }]
         });
       }
-      return Promise.all(promises).then(results => results[0]);
+      return Promise.all(promises).
+        then(results => results[0]);
     })
   }
 
@@ -94,8 +93,8 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
   initConfig (config) {
     if (config.kafka) {
       if (!check.string(config.kafka.topicName) ||
-        !check.object(config.kafka.highLevelProducer)) {
-        throw new Error('invalid kafka config: expected topicName to be string and highLevelProducer to be an object');
+        !check.object(config.kafka.producer)) {
+        throw new Error('invalid kafka config: expected topicName to be string and producer to be an object');
       }
     }
     Object.assign(this.config, config);

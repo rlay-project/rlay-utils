@@ -59,7 +59,13 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
   async createEntity (entity) {
     return this.storeLimit(async () => {
       return this.rlay.store(this.web3, entity, { backend: this.config.backend });
-    })
+    });
+  }
+
+  async createEntities (entities) {
+    return this.storeLimit(async () => {
+      return this.rlay.storeEntities(this.web3, entities, { backend: this.config.backend });
+    });
   }
 
   async findEntityByCID (cid) {

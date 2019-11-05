@@ -63,10 +63,11 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
     const that = this;
     return this.storeLimit(async () => {
       const promises = [this.rlay.store(this.web3, entity, { backend: this.config.backend })]
-      if (this.kafka) {
+      if (that.kafka) {
+        const _entity = this.getEntityFromPayload(entity);
         promises[1] = that.kafka.producer.send({
-          topic: this.kafka.topicName,
-          messages: [{ key: this.getEntityCid(entity), value: JSON.stringify(entity) }]
+          topic: that.kafka.topicName,
+          messages: [{ key: _entity.cid, value: JSON.stringify(_entity.payload) }]
         });
       }
       return Promise.all(promises).then(results => results[0]);

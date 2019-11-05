@@ -74,17 +74,23 @@ describe('Client', () => {
     context('with Kafka client', () => {
       before(() => {
         client = rlayClientKafka
-        kafkaStub = sinon.stub(client.kafka.producer, 'send').
-          callsFake((payload, cb) => cb())
+        kafkaStub = sinon.stub(client.kafka.producer, 'send').callsFake(payload => payload)
         rlayStub = sinon.stub(client.rlay, 'store')
       });
 
       it('also sends payload to Kafka', async () => {
         assert(rlayStub.calledOnce);
         assert(kafkaStub.calledOnce);
+        const _payload = new client.Payload(payloads.dataProperty, () => true);
+        const cid = _payload.removeCid();
         assert.deepEqual(kafkaStub.args[0][0], {
           topic: client.config.kafka.topicName,
-          messages: JSON.stringify(payloads.dataProperty)
+          messages: [
+            {
+              key: cid,
+              value: JSON.stringify(_payload)
+            }
+          ]
         });
       });
 

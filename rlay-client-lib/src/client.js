@@ -60,13 +60,12 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 
   async createEntity (entity) {
-    const that = this;
     return this.storeLimit(async () => {
       const promises = [this.rlay.store(this.web3, entity, { backend: this.config.backend })]
-      if (that.kafka) {
+      if (this.kafka) {
         const _entity = this.getEntityFromPayload(entity);
-        promises[1] = that.kafka.producer.send({
-          topic: that.kafka.topicName,
+        promises[1] = this.kafka.producer.send({
+          topic: this.kafka.topicName,
           messages: [{ key: _entity.cid, value: JSON.stringify(_entity.payload) }]
         });
       }
@@ -76,7 +75,18 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
 
   async createEntities (entities) {
     return this.storeLimit(async () => {
-      return this.rlay.storeEntities(this.web3, entities, { backend: this.config.backend });
+      const promises = [
+        this.rlay.storeEntities(this.web3, entities, { backend: this.config.backend })];
+      if (this.kafka) {
+        promises[1] = this.kafka.producer.send({
+          topic: this.kafka.topicName,
+          messages: entities.map(entity => {
+            const _entity = this.getEntityFromPayload(entity);
+            return { key: _entity.cid, value: JSON.stringify(_entity.payload) };
+          })
+        });
+      }
+      return Promise.all(promises).then(results => results[0]);
     });
   }
 

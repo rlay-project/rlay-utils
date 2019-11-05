@@ -62,9 +62,12 @@ describe('Client', () => {
   describe('.createEntity', () => {
     const rlayClient = new ClientBase();
     const kafkaClient = new Kafka({brokers: ['localhost']});
-    const rlayKafkaConfig = {kafka: {
-      producer: kafkaClient.producer(),
-      topicName: 'test' }};
+    const rlayKafkaConfig = {
+      kafka: {
+        producer: kafkaClient.producer(),
+        topicName: 'test'
+      }
+    };
     const rlayClientKafka = new ClientBase(rlayKafkaConfig);
     let client, clientKafka, rlayStub, kafkaStub;
     beforeEach(async () => client.createEntity(payloads.dataProperty));
@@ -86,6 +89,65 @@ describe('Client', () => {
         assert.deepEqual(kafkaStub.args[0][0], {
           topic: client.config.kafka.topicName,
           messages: [
+            {
+              key: cid,
+              value: JSON.stringify(_payload)
+            }
+          ]
+        });
+      });
+
+      it('throws if invalid kafka config', () => {
+        assert.throws(() => {
+          const client = new ClientBase({ kafka: { topicName: 'test' }});
+        }, Error, /invalid kafka config/u);
+      });
+    });
+
+    context('without Kafka client', () => {
+      before(() => client = rlayClient);
+
+      it('only sends payload to Rlay', async () => {
+        assert(rlayStub.calledOnce);
+        assert(kafkaStub.notCalled);
+      });
+    });
+  });
+
+  describe('.createEntities', () => {
+    const rlayClient = new ClientBase();
+    const kafkaClient = new Kafka({brokers: ['localhost']});
+    const rlayKafkaConfig = {kafka: {
+      producer: kafkaClient.producer(),
+      topicName: 'test' }};
+    const rlayClientKafka = new ClientBase(rlayKafkaConfig);
+    let client, clientKafka, rlayStub, kafkaStub;
+    beforeEach(async () => client.createEntities([
+      payloads.dataProperty,
+      payloads.dataProperty,
+    ]));
+    afterEach(() => kafkaStub.resetHistory());
+    afterEach(() => rlayStub.resetHistory());
+
+    context('with Kafka client', () => {
+      before(() => {
+        client = rlayClientKafka
+        kafkaStub = sinon.stub(client.kafka.producer, 'send').callsFake(payload => payload)
+        rlayStub = sinon.stub(client.rlay, 'storeEntities')
+      });
+
+      it('also sends payload to Kafka', async () => {
+        assert(rlayStub.calledOnce);
+        assert(kafkaStub.calledOnce);
+        const _payload = new client.Payload(payloads.dataProperty, () => true);
+        const cid = _payload.removeCid();
+        assert.deepEqual(kafkaStub.args[0][0], {
+          topic: client.config.kafka.topicName,
+          messages: [
+            {
+              key: cid,
+              value: JSON.stringify(_payload)
+            },
             {
               key: cid,
               value: JSON.stringify(_payload)

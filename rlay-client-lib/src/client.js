@@ -69,9 +69,14 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
           messages: [{ key: this.getEntityCid(entity), value: JSON.stringify(entity) }]
         });
       }
-      return Promise.all(promises).
-        then(results => results[0]);
+      return Promise.all(promises).then(results => results[0]);
     })
+  }
+
+  async createEntities (entities) {
+    return this.storeLimit(async () => {
+      return this.rlay.storeEntities(this.web3, entities, { backend: this.config.backend });
+    });
   }
 
   async findEntityByCID (cid) {

@@ -3,9 +3,9 @@
   "version": "0.2.1",
   "author": "Michael Hirn <michael.j.hirn@gmail.com>",
   "license": "Apache-2.0",
-  "main": "src/client.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "mocha --exit",
     "test:dockerimage": "docker build --tag rlay-client-rlay-utils-test test/integration/docker",
     "test:integration": "node test/integration/integration_tests.js",
     "docs": "jsdoc src/* -d ./docs"
@@ -22,9 +22,13 @@
     "web3": "^1.2.1"
   },
   "devDependencies": {
+    "convict": "^5.2.0",
     "jsdoc": "^3.6.3",
+    "kafkajs": "^1.11.0",
     "mocha": "^6.2.1",
-    "simple-mock": "^0.8.0"
+    "simple-mock": "^0.8.0",
+    "sinon": "^7.5.0",
+    "toml": "^3.0.0"
   },
   "peerDependencies": {}
 }

@@ -9,6 +9,7 @@ const { SchemaPayload } = require('./schemaPayload');
 const { Payload } = require('./payload');
 const { Negative } = require('./negative');
 const { mix } = require('mixwith');
+const check = require('check-types');
 
 class Config {
   constructor() {
@@ -17,6 +18,7 @@ class Config {
     this.RpcUrl = process.env.RPC_URL || 'http://localhost:8546';
     this.storeLimit = 50;
     this.readLimit = 50;
+    this.kafka = undefined;
     Object.seal(this);
   }
 }
@@ -24,7 +26,7 @@ class Config {
 /**
  * The `Client`, ORM, and main interface for users
  */
-class Client extends mix(EntityMetaFactory).with(ClientInterface) {
+class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
 
   /**
    * Create a new Client instance
@@ -36,6 +38,7 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
     this.config = new Config();
     this.initConfig(config);
 
+    this.kafka = this.config.kafka;
     this.web3 = new Web3(this.config.RpcUrl);
     rlay.extendWeb3WithRlay(this.web3);
     this.web3.eth.defaultAccount = this.config.address;
@@ -58,13 +61,32 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
 
   async createEntity (entity) {
     return this.storeLimit(async () => {
-      return this.rlay.store(this.web3, entity, { backend: this.config.backend });
-    });
+      const promises = [this.rlay.store(this.web3, entity, { backend: this.config.backend })]
+      if (this.kafka) {
+        const _entity = this.getEntityFromPayload(entity);
+        promises[1] = this.kafka.producer.send({
+          topic: this.kafka.topicName,
+          messages: [{ key: _entity.cid, value: JSON.stringify(_entity.payload) }]
+        });
+      }
+      return Promise.all(promises).then(results => results[0]);
+    })
   }
 
   async createEntities (entities) {
     return this.storeLimit(async () => {
-      return this.rlay.storeEntities(this.web3, entities, { backend: this.config.backend });
+      const promises = [
+        this.rlay.storeEntities(this.web3, entities, { backend: this.config.backend })];
+      if (this.kafka) {
+        promises[1] = this.kafka.producer.send({
+          topic: this.kafka.topicName,
+          messages: entities.map(entity => {
+            const _entity = this.getEntityFromPayload(entity);
+            return { key: _entity.cid, value: JSON.stringify(_entity.payload) };
+          })
+        });
+      }
+      return Promise.all(promises).then(results => results[0]);
     });
   }
 
@@ -85,6 +107,12 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 
   initConfig (config) {
+    if (config.kafka) {
+      if (!check.string(config.kafka.topicName) ||
+        !check.object(config.kafka.producer)) {
+        throw new Error('invalid kafka config: expected topicName to be string and producer to be an object');
+      }
+    }
     Object.assign(this.config, config);
   }
 
@@ -131,4 +159,4 @@ class Client extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 }
 
-module.exports = { Client, Config };
+module.exports = { ClientBase, Config };

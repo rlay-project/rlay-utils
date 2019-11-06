@@ -1,21 +1,38 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
 const check = require('check-types');
+const { Client } = require('../src/index.js');
 const { EntityInterface } = require('../src/entity');
-const { mockClient, mockCreateEntity, mockFindEntity } = require('./mocks/client');
+const generateClient = require('./seed/generated/generateRlayClient.js');
+const {
+  stubCreateEntity,
+  stubFindEntityByCid,
+  stubFindEntityByCypher
+} = require('./mocks/client');
 const payloads = require('./assets/payloads');
 
+let mockClient;
 class TestEntity extends EntityInterface {}
-
-TestEntity.client = mockClient;
 TestEntity.fields = [];
-
-let target;
-const targetCID = '123';
 
 const clone = obj => JSON.parse(JSON.stringify(obj));
 
 describe('EntityInterface', () => {
+  let target;
+  let clientCreateEntityStub, clientFindEntityByCIDStub, clientFindEntityByCypherStub;
+  before(() => {
+    let client = new Client();
+    clientCreateEntityStub = stubCreateEntity(client);
+    clientFindEntityByCIDStub = stubFindEntityByCid(client);
+    clientFindEntityByCypherStub = stubFindEntityByCypher(client);
+    generateClient(client);
+    TestEntity.client = client;
+    mockClient = client;
+  });
+  beforeEach(() => clientCreateEntityStub.resetHistory());
+  beforeEach(() => clientFindEntityByCIDStub.resetHistory());
+  beforeEach(() => clientFindEntityByCypherStub.resetHistory());
+
   describe('constructor', () => {
     context('invalid client', () => {
       it('throws', () => {
@@ -98,14 +115,13 @@ describe('EntityInterface', () => {
   });
 
   describe('.create', () => {
-    beforeEach(() => mockCreateEntity(mockClient));
     beforeEach(async () => {
       target = new TestEntity(mockClient, clone(payloads.withoutCid));
       await target.create();
     });
 
     it('calls the client to create the entity remote', async () => {
-      assert.equal(mockClient.createEntity.callCount, 1);
+      assert.equal(clientCreateEntityStub.callCount, 1);
     });
 
     it('sets .remoteCid', async () => {
@@ -114,10 +130,9 @@ describe('EntityInterface', () => {
   });
 
   describe('.resolve', () => {
-    beforeEach(() => mockFindEntity(mockClient));
     beforeEach(async () => target.resolve());
 
-    it('assigns the attributes correctly', () => {
+    it('assigns the attributes correctly', async () => {
       assert.equal(check.string(target.target), true);
       assert.equal(check.instance(target.property, Object), true);
       assert.equal(check.null(target.subject), true);
@@ -126,9 +141,9 @@ describe('EntityInterface', () => {
     });
 
     it('calls out to the client to resolve the CIDs', async () => {
-      assert.deepEqual(mockClient.findEntityByCID.calls.map(call => call.arg), [
-        '0x00',
-        '0x019480031b206a9cfaac8c40060e3e9a799df4d0788a1b7ce2f45640f962c23b36d2386b9560'
+      assert.deepEqual(clientFindEntityByCIDStub.getCalls().map(call => call.args), [
+        ['0x00'],
+        ['0x019480031b206a9cfaac8c40060e3e9a799df4d0788a1b7ce2f45640f962c23b36d2386b9560']
       ]);
     });
   });

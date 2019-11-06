@@ -1,11 +1,28 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
+const sinon = require('sinon');
 const EntityInterface = require('../src/entity/entity');
 const { Rlay_DataProperty } = require('../src/rlay');
-const { mockClient, mockCreateEntity, mockFindEntity } = require('./mocks/client');
+const {
+  stubCreateEntity,
+  stubFindEntityByCid,
+  stubFindEntityByCypher
+} = require('./mocks/client');
 const payloads = require('./assets/payloads');
 
 describe('EntityFactoryInterface', () => {
+  let result;
+  let clientCreateEntityStub, clientFindEntityByCIDStub, clientFindEntityByCypherStub;
+  before(() => {
+    let client = Rlay_DataProperty.client;
+    clientCreateEntityStub = stubCreateEntity(client);
+    clientFindEntityByCIDStub = stubFindEntityByCid(client);
+    clientFindEntityByCypherStub = stubFindEntityByCypher(client);
+  });
+  afterEach(() => clientCreateEntityStub.resetHistory());
+  afterEach(() => clientFindEntityByCIDStub.resetHistory());
+  afterEach(() => clientFindEntityByCypherStub.resetHistory());
+
   describe('.from', () => {
     it('returns an instantiated entity', () => {
       const entity = Rlay_DataProperty.from(payloads.clone(payloads.dataProperty));
@@ -14,12 +31,9 @@ describe('EntityFactoryInterface', () => {
   });
 
   describe('.create', () => {
-    beforeEach(() => mockCreateEntity(mockClient));
-    let result;
-
     it('calls out to the client to create the entity', async () => {
       result = await Rlay_DataProperty.create({type: 'TestEntity'});
-      assert.equal(mockClient.createEntity.callCount, 1);
+      assert.equal(clientCreateEntityStub.callCount, 1);
     });
 
     context('createEntity=SUCCESS', () => {
@@ -38,8 +52,6 @@ describe('EntityFactoryInterface', () => {
   });
 
   describe('.find', () => {
-    beforeEach(() => mockFindEntity(mockClient));
-    let result;
     context('with fetchBoolean = true', () => {
 
       context('with CID that exists', () => {
@@ -49,9 +61,9 @@ describe('EntityFactoryInterface', () => {
         });
 
         it('calls multiple times to fetch connected entities', async () => {
-          const callCountBefore = mockClient.findEntityByCID.callCount;
+          const callCountBefore = clientFindEntityByCIDStub.callCount;
           await Rlay_DataProperty.find('CID_EXISTS', true);
-          assert.equal(mockClient.findEntityByCID.callCount, callCountBefore + 3);
+          assert.equal(clientFindEntityByCIDStub.callCount, callCountBefore + 3);
         });
       });
 
@@ -78,9 +90,9 @@ describe('EntityFactoryInterface', () => {
         });
 
         it('calls only once', async () => {
-          const callCountBefore = mockClient.findEntityByCID.callCount;
+          const callCountBefore = clientFindEntityByCIDStub.callCount;
           await Rlay_DataProperty.find('CID_EXISTS', false)
-          assert.equal(mockClient.findEntityByCID.callCount, callCountBefore + 1);
+          assert.equal(clientFindEntityByCIDStub.callCount, callCountBefore + 1);
         });
       });
 

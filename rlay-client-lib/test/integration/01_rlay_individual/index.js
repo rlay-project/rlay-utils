@@ -1,7 +1,11 @@
 /* eslint-env node, mocha */
 const assert = require('assert');
-const Client = require('../../mocks/client');
-const client = Client.mockClient;
+//const Client = require('../../mocks/client');
+//const client = Client.mockClient;
+//client.config.storeLimit = 1;
+const { Client } = require('../../../src/index.js');
+const generateClient = require('../../seed/generated/generateRlayClient.js');
+const client = generateClient(new Client());
 const check = require('check-types');
 
 const defaultPayload = {

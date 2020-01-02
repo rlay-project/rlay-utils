@@ -1,3 +1,6 @@
+const check = require('check-types');
+const VError = require('verror');
+
 const capitalizeFirstLetter = (string) => {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
@@ -9,7 +12,29 @@ const generateFnName = (string) => {
   return string;
 }
 
+const createDebugFnObject = () => {
+  return {
+    startTimestamp: Date.now()
+  }
+}
+
+const wrapDebug = async (promise, debugFn) => {
+  try {
+    check.assert.instance(promise, Promise, 'expected input (promise) to be a promise instance');
+    check.assert.instance(debugFn, Function, 'expected input (debugFn) to be a function instance');
+    return promise.then(result => {
+      debugFn(createDebugFnObject());
+      return result;
+    });
+  } catch (e) {
+    throw new VError(e, 'failed to exectue wrapDebug');
+  }
+
+}
+
 module.exports = {
   generateFnName,
   capitalizeFirstLetter,
+  wrapDebug,
+  createDebugFnObject
 };

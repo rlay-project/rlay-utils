@@ -13,10 +13,12 @@ const { Payload } = require('../src/payload.js');
 const payloads = require('./assets/payloads');
 const { cids } = require('./assets');
 
-const { Entity,
+const {
+  Entity,
   Rlay_ClassAssertion,
   Rlay_DataPropertyAssertion,
-  Rlay_ObjectPropertyAssertion } = RlayEntities;
+  Rlay_ObjectPropertyAssertion
+} = RlayEntities;
 
 const client = mockClient;
 
@@ -70,15 +72,15 @@ describe('Client', () => {
     };
     const rlayClientKafka = new ClientBase(rlayKafkaConfig);
     let client, clientKafka, rlayStub, kafkaStub;
-    beforeEach(async () => client.createEntity(payloads.dataProperty));
+    beforeEach(async () => await client.createEntity(payloads.dataProperty));
     afterEach(() => kafkaStub.resetHistory());
     afterEach(() => rlayStub.resetHistory());
 
     context('with Kafka client', () => {
       before(() => {
         client = rlayClientKafka
-        kafkaStub = sinon.stub(client.kafka.producer, 'send').callsFake(payload => payload)
-        rlayStub = sinon.stub(client.rlay, 'store')
+        kafkaStub = sinon.stub(client.kafka.producer, 'send').resolves(true);
+        rlayStub = sinon.stub(client.rlay, 'store').resolves('0x0000');
       });
 
       it('also sends payload to Kafka', async () => {
@@ -132,8 +134,8 @@ describe('Client', () => {
     context('with Kafka client', () => {
       before(() => {
         client = rlayClientKafka
-        kafkaStub = sinon.stub(client.kafka.producer, 'send').callsFake(payload => payload)
-        rlayStub = sinon.stub(client.rlay, 'storeEntities')
+        kafkaStub = sinon.stub(client.kafka.producer, 'send').resolves(true)
+        rlayStub = sinon.stub(client.rlay, 'storeEntities').resolves('0x0000');
       });
 
       it('also sends payload to Kafka', async () => {

@@ -11,6 +11,8 @@ const { Negative } = require('./negative');
 const { mix } = require('mixwith');
 const check = require('check-types');
 const { ClientConfig } = require('./clientConfig');
+const { wrapDebug } = require('./utils.js');
+const debug = require('./debug');
 
 /**
  * The `Client`, ORM, and main interface for users
@@ -49,31 +51,54 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 
   async createEntity (entity) {
+    const thisDebug = debug.extend('createEntity');
+    const debugFnRlay = (debugObject) => {
+      thisDebug.extend('performance').extend('rlay')(`${Date.now() - debugObject.startTimestamp}ms`)
+    }
+    const debugFnKafka = (debugObject) => {
+      thisDebug.extend('performance').extend('kafka')(`${Date.now() - debugObject.startTimestamp}ms`)
+    }
+
     return this.storeLimit(async () => {
-      const promises = [this.rlay.store(this.web3, entity, { backend: this.config.backend })]
+      const rlayStoreEntityPromise = this.rlay.store(this.web3, entity, { backend: this.config.backend })
+      const promises = [wrapDebug(rlayStoreEntityPromise, debugFnRlay)];
       if (this.kafka) {
-        const _entity = this.getEntityFromPayload(entity);
-        promises[1] = this.kafka.producer.send({
+        const entityObject = this.getEntityFromPayload(entity);
+        const kafkaStoreEntityPromise = this.kafka.producer.send({
           topic: this.kafka.topicName,
-          messages: [{ key: _entity.cid, value: JSON.stringify(_entity.payload) }]
+          messages: [{ key: entityObject.cid, value: JSON.stringify(entityObject.payload) }]
         });
+        promises[1] = wrapDebug(kafkaStoreEntityPromise, debugFnKafka);
       }
       return Promise.all(promises).then(results => results[0]);
     })
   }
 
   async createEntities (entities) {
+    const thisDebug = debug.extend('createEntities');
+    thisDebug.extend('entities')(entities.length);
+
+    const debugFnRlay = (debugObject) => {
+      thisDebug.extend('performance').extend('rlay')(`${Date.now() - debugObject.startTimestamp}ms`)
+    }
+
+    const debugFnKafka = (debugObject) => {
+      thisDebug.extend('performance').extend('kafka')(`${Date.now() - debugObject.startTimestamp}ms`)
+    }
+
     return this.storeLimit(async () => {
-      const promises = [
-        this.rlay.storeEntities(this.web3, entities, { backend: this.config.backend })];
+      const rlayStoreEntitiesPromise = this.rlay.
+        storeEntities(this.web3, entities, { backend: this.config.backend });
+      const promises = [wrapDebug(rlayStoreEntitiesPromise, debugFnRlay)];
       if (this.kafka) {
-        promises[1] = this.kafka.producer.send({
+        const kafkaStoreEntitiesPromise = this.kafka.producer.send({
           topic: this.kafka.topicName,
           messages: entities.map(entity => {
-            const _entity = this.getEntityFromPayload(entity);
-            return { key: _entity.cid, value: JSON.stringify(_entity.payload) };
+            const entityObject = this.getEntityFromPayload(entity);
+            return { key: entityObject.cid, value: JSON.stringify(entityObject.payload) };
           })
         });
+        promises[1] = wrapDebug(kafkaStoreEntitiesPromise, debugFnKafka);
       }
       return Promise.all(promises).then(results => results[0]);
     });

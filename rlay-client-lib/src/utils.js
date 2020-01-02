@@ -22,8 +22,9 @@ const wrapDebug = async (promise, debugFn) => {
   try {
     check.assert.instance(promise, Promise, 'expected input (promise) to be a promise instance');
     check.assert.instance(debugFn, Function, 'expected input (debugFn) to be a function instance');
+    const debugObject = createDebugFnObject();
     return promise.then(result => {
-      debugFn(createDebugFnObject());
+      debugFn(debugObject);
       return result;
     });
   } catch (e) {

@@ -10,18 +10,7 @@ const { Payload } = require('./payload');
 const { Negative } = require('./negative');
 const { mix } = require('mixwith');
 const check = require('check-types');
-
-class Config {
-  constructor() {
-    this.address = '0xc02345a911471fd46c47c4d3c2e5c85f5ae93d13';
-    this.backend = 'myneo4j';
-    this.RpcUrl = process.env.RPC_URL || 'http://localhost:8546';
-    this.storeLimit = 50;
-    this.readLimit = 50;
-    this.kafka = undefined;
-    Object.seal(this);
-  }
-}
+const { ClientConfig } = require('./clientConfig');
 
 /**
  * The `Client`, ORM, and main interface for users
@@ -31,11 +20,11 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
   /**
    * Create a new Client instance
    *
-   * @param {Config} config - The configuration for the client
+   * @param {ClientConfig} config - The configuration for the client
    */
   constructor (config = {}) {
     super();
-    this.config = new Config();
+    this.config = new ClientConfig();
     this.initConfig(config);
 
     this.kafka = this.config.kafka;
@@ -159,4 +148,4 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
   }
 }
 
-module.exports = { ClientBase, Config };
+module.exports = { ClientBase };

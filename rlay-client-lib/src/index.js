@@ -1,11 +1,13 @@
 const RlayEntities = require('./rlay');
-const { ClientBase, Config } = require('./client');
+const { ClientConfig } = require('./clientConfig');
+const { ClientBase } = require('./client');
 
 class Client extends ClientBase {
+
   /**
    * Create a new Client instance
    *
-   * @param {Config} config - The configuration for the client
+   * @param {ClientConfig} config - The configuration for the client
    */
   constructor (config = {}) {
     super(config);
@@ -22,4 +24,7 @@ class Client extends ClientBase {
   }
 }
 
-module.exports = { Client, Config };
+module.exports = {
+  Client,
+  Config: ClientConfig
+};

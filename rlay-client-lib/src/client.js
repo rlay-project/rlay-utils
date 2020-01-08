@@ -110,6 +110,12 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
     });
   }
 
+  async findEntityByCIDs (cids) {
+    return this.readLimit(async () => {
+      return this.web3.rlay.experimentalGetEntities(cids, { backend: this.config.backend });
+    });
+  }
+
   async findEntityByCypher (query) {
     return this.readLimit(async () => {
       return this.web3.rlay.experimentalNeo4jQuery(query, { backend: 'myneo4j' });

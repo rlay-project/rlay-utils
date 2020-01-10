@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 const { Entity } = require('./entity');
 const check = require('check-types');
 const VError = require('verror');

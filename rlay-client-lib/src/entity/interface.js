@@ -1,5 +1,6 @@
 const { ClientInterface } = require('../interfaces/client');
 const { Payload } = require('../payload');
+const { SchemaPayload } = require('../schemaPayload');
 const check = require('check-types');
 const VError = require('verror');
 const debug = require('../debug').extend('entity');
@@ -94,6 +95,24 @@ class EntityInterface {
    * @async
    */
   async resolve () {
+    /* eslint-disable-next-line no-unused-vars */
+    const payloads = await this.client.resolveEntity(this.cid);
+    const resolvedPayload = Payload.toResolvedPayload(this.cid, payloads[this.cid], {
+      decoder: this.client.rlay.decodeValue.bind(this.client.rlay),
+      getEntityFromPayload: this.client.getEntityFromPayload.bind(this.client)
+    });
+    Object.assign(this, resolvedPayload);
+    debug.extend(`resolve${this.type}`)(`...${this.remoteCid.slice(-8)}`);
+    return this;
+  }
+
+  /**
+   * Given the payload of the entity it fetches the related entities and instantiates
+   * proper `Entities` from them.
+   *
+   * @async
+   */
+  async resolveFallback () {
     /* eslint-disable-next-line no-unused-vars */
     const decoder = this.client.rlay.decodeValue.bind(this.client.rlay);
     const resolver = this.client.Entity.find.bind(this.client.Entity);

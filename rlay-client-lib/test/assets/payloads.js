@@ -66,6 +66,8 @@ const negativeObjectPropertyAssertion = clone({
 });
 const dataProperty = clone(rlayProp2);
 const withCid = clone(rlayProp);
+const withCidResolve = {};
+withCidResolve[rlayProp.cid] = [clone(rlayProp), clone(rlayProp2)];
 
 const withoutCid = clone(rlayProp);
 withoutCid.cid = undefined
@@ -80,6 +82,7 @@ module.exports = {
   objectPropertyAssertion,
   negativeObjectPropertyAssertion,
   withCid,
+  withCidResolve,
   withoutCid,
   '0x00': null,
   // one of the rlay bultins

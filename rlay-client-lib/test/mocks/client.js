@@ -11,6 +11,7 @@ const validateInputCid = cid => {
     'CID_EXISTS',
     'CID_NOT_FOUND',
     'CID_CONNECTION_ERROR',
+    payloads.withCid.cid,
     ...Object.keys(payloads)
   ];
   if (!options.includes(cid)) {
@@ -84,6 +85,27 @@ const stubFindEntityByCid = client => {
   }
 }
 
+const stubResolveEntity = client => {
+  try {
+    const stub = sinon.stub(client.web3.rlay, 'experimentalResolveEntity');
+    stub.callsFake(cid => {
+      //validateInputCid(cid);
+      if (cid === 'CID_EXISTS') return Promise.resolve(clone(payloads.withCidResolve))
+      if (cid === payloads.withCid.cid) return Promise.resolve(clone(payloads.withCidResolve))
+      if (cid === 'CID_EXISTS') return Promise.resolve(clone(payloads.withCidResolve))
+      if (cid === 'CID_CONNECTION_ERROR') return Promise.reject(new Error('failure'))
+      if (cid === 'CID_NOT_FOUND') return Promise.resolve(null)
+      const response = {};
+      response[cid] = [payloads[cid] || clone(payloads.withCid)];
+      return Promise.resolve(response);
+    });
+
+    return stub;
+  } catch (e) {
+    return client.web3.rlay.experimentalResolveEntity;
+  }
+}
+
 const stubFindEntityByCypher = client => {
   try {
   const clientFindEntityByCypherStub = sinon.stub(client, 'findEntityByCypher');
@@ -106,5 +128,6 @@ module.exports = {
   stubCreateEntity,
   stubFindEntityByCid,
   stubFindEntityByCypher,
+  stubResolveEntity,
   mockFindEntity
 };

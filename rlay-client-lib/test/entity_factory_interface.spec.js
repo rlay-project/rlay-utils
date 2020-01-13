@@ -6,22 +6,26 @@ const { Rlay_DataProperty } = require('../src/rlay');
 const {
   stubCreateEntity,
   stubFindEntityByCid,
-  stubFindEntityByCypher
+  stubFindEntityByCypher,
+  stubResolveEntity
 } = require('./mocks/client');
 const payloads = require('./assets/payloads');
 
 describe('EntityFactoryInterface', () => {
   let result;
-  let clientCreateEntityStub, clientFindEntityByCIDStub, clientFindEntityByCypherStub;
+  let clientCreateEntityStub, clientFindEntityByCIDStub;
+  let clientFindEntityByCypherStub, clientResolveEntityStub;
   before(() => {
     let client = Rlay_DataProperty.client;
     clientCreateEntityStub = stubCreateEntity(client);
     clientFindEntityByCIDStub = stubFindEntityByCid(client);
     clientFindEntityByCypherStub = stubFindEntityByCypher(client);
+    clientResolveEntityStub = stubResolveEntity(client);
   });
   afterEach(() => clientCreateEntityStub.resetHistory());
   afterEach(() => clientFindEntityByCIDStub.resetHistory());
   afterEach(() => clientFindEntityByCypherStub.resetHistory());
+  afterEach(() => clientResolveEntityStub.resetHistory());
 
   describe('.from', () => {
     it('returns an instantiated entity', () => {
@@ -60,10 +64,10 @@ describe('EntityFactoryInterface', () => {
           assert.equal(result instanceof EntityInterface, true);
         });
 
-        it('calls multiple times to fetch connected entities', async () => {
-          const callCountBefore = clientFindEntityByCIDStub.callCount;
+        it('calls resolveEntity to fetch connected entities', async () => {
           await Rlay_DataProperty.find('CID_EXISTS', true);
-          assert.equal(clientFindEntityByCIDStub.callCount, callCountBefore + 3);
+          assert.equal(clientFindEntityByCIDStub.callCount, 1);
+          assert.equal(clientResolveEntityStub.callCount, 1);
         });
       });
 

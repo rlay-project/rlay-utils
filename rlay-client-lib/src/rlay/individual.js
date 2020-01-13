@@ -42,12 +42,48 @@ class Rlay_Individual extends Entity {
   }
 
   async resolve () {
+    const payloads = await this.client.resolveEntity(this.cid);
+    const entityPayloads = payloads[this.cid].filter(payload => {
+      return payload.cid === this.cid
+    });
+    if (entityPayloads.length !== 1) {
+      throw new Error(
+        `unable to complete resolve; expected to find main payload but found ${entityPayloads.length}`);
+    }
+    const entityPayload = entityPayloads[0];
+    // find all property cids
+    const invalidKeys = ['type', 'cid'];
+    const propertyCids = Object.keys(entityPayload).map(key => {
+      if (invalidKeys.includes(key)) return []
+      return entityPayload[key];
+    }).reduce((all, one) => all.concat(one), []);
+    // find all payloads associated with these propertyCids
+    const propertyPayloads = [];
+    const assertionPayloads = [];
+    payloads[this.cid].forEach(payload => {
+      if (this.cid !== payload.cid) {
+        if (propertyCids.includes(payload.cid)) {
+          propertyPayloads.push(payload);
+        } else {
+          assertionPayloads.push(payload);
+        }
+      }
+    });
+    Object.assign(
+      this,
+      {
+        properties: SchemaPayload.fromPayloads(this.client, propertyPayloads).payload,
+        ...SchemaPayload.fromPayloads(this.client, assertionPayloads).payload
+      },
+    );
+    return this;
+  }
+
+  async resolveFallback () {
     const [propertyPayloads, assertionPayloads] = await Promise.all(
       [
-        this.client.findEntityByCypher(queries.
-          individualResolve(this, 'properties')),
-        this.client.findEntityByCypher(queries.
-          individualResolve(this, 'assertions')),
+        this.client.findEntityByCypher(queries.individualResolve(this, 'properties')),
+        this.client.findEntityByCypher(queries.individualResolve(this, 'assertions')),
       ]
     );
     Object.assign(

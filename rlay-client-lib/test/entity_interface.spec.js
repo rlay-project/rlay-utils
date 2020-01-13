@@ -7,7 +7,8 @@ const generateClient = require('./seed/generated/generateRlayClient.js');
 const {
   stubCreateEntity,
   stubFindEntityByCid,
-  stubFindEntityByCypher
+  stubFindEntityByCypher,
+  stubResolveEntity
 } = require('./mocks/client');
 const payloads = require('./assets/payloads');
 
@@ -19,12 +20,14 @@ const clone = obj => JSON.parse(JSON.stringify(obj));
 
 describe('EntityInterface', () => {
   let target;
-  let clientCreateEntityStub, clientFindEntityByCIDStub, clientFindEntityByCypherStub;
+  let clientCreateEntityStub, clientFindEntityByCIDStub;
+  let clientFindEntityByCypherStub, clientResolveEntityStub;
   before(() => {
     let client = new Client();
     clientCreateEntityStub = stubCreateEntity(client);
     clientFindEntityByCIDStub = stubFindEntityByCid(client);
     clientFindEntityByCypherStub = stubFindEntityByCypher(client);
+    clientResolveEntityStub = stubResolveEntity(client);
     generateClient(client);
     TestEntity.client = client;
     mockClient = client;
@@ -32,6 +35,7 @@ describe('EntityInterface', () => {
   beforeEach(() => clientCreateEntityStub.resetHistory());
   beforeEach(() => clientFindEntityByCIDStub.resetHistory());
   beforeEach(() => clientFindEntityByCypherStub.resetHistory());
+  beforeEach(() => clientResolveEntityStub.resetHistory());
 
   describe('constructor', () => {
     context('invalid client', () => {
@@ -140,10 +144,12 @@ describe('EntityInterface', () => {
       assert.equal(check.string(target.cid), true);
     });
 
-    it('calls out to the client to resolve the CIDs', async () => {
-      assert.deepEqual(clientFindEntityByCIDStub.getCalls().map(call => call.args), [
-        ['0x00'],
-        ['0x019480031b206a9cfaac8c40060e3e9a799df4d0788a1b7ce2f45640f962c23b36d2386b9560']
+    it('calls resolveEntity to resolve the CIDs', async () => {
+      assert.deepEqual(clientResolveEntityStub.getCalls().map(call => call.args), [
+        [
+          '0x019c80031b201eca64d262060a8f8914918c1191334f78834edfb4385fd03a91cf3a59c4dc04',
+          { backend: 'myneo4j' }
+        ]
       ]);
     });
   });

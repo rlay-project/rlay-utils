@@ -12,9 +12,10 @@
   },
   "dependencies": {
     "@rlay/ontology": "0.1.0-alpha.1",
-    "@rlay/web3-rlay": "^0.1.15",
+    "@rlay/web3-rlay": "^0.1.18",
     "check-types": "^10.0.0",
     "debug": "^4.1.1",
+    "find-and-replace-anything": "^2.0.4",
     "mixwith": "^0.1.1",
     "p-iteration": "^1.1.8",
     "p-limit": "^2.2.1",

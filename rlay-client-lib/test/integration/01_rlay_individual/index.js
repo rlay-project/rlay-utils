@@ -54,25 +54,45 @@ describe('Rlay_Individual', () => {
   });
 
   describe('.resolve', () => {
-    it('works as expected', async () => {
-      const properties = { httpStatusCodeValueDataProperty: 200 };
-      const properties1 = { httpStatusCodeValueDataProperty: 400 };
-      const indi = await client.Rlay_Individual.create(clone(properties));
-      const objIndi1 = await client.Rlay_Individual.create(clone(properties1));
-      await indi.assert({
-        httpConnectionClass: true,
-        httpEntityHeaderClass: true,
-        httpStatusCodeValueDataProperty: 599,
-        httpRequestsObjectProperty: objIndi1
+    context('Non-Individual', () => {
+      it('works as expected', async () => {
+        const properties = { httpStatusCodeValueDataProperty: 405 };
+        const objIndi1 = await client.Rlay_Individual.create(clone(properties));
+        const dpa404 = await client.httpStatusCodeValueDataProperty.create({
+          subject: objIndi1.cid,
+          target: 404
+        });
+        const cid = dpa404.cid.slice();
+        await dpa404.resolve();
+        assert.equal(dpa404.cid, cid);
+        assert.deepEqual(dpa404.annotations, []);
+        assert.deepEqual(dpa404.subject, objIndi1);
+        assert.equal(dpa404.property, null);
+        assert.equal(dpa404.target, 404);
       });
-      await indi.resolve();
-      await objIndi1.resolve();
-      assert.deepEqual(indi.properties, properties);
-      assert.deepEqual(objIndi1.properties, properties1);
-      assert.equal(indi.httpRequestsObjectProperty instanceof client.Rlay_Individual, true);
-      assert.equal(indi.httpConnectionClass, true);
-      assert.equal(indi.httpEntityHeaderClass, true);
-      assert.equal(indi.httpStatusCodeValueDataProperty, 599);
+    });
+
+    context('Individual', () => {
+      it('works as expected', async () => {
+        const properties = { httpStatusCodeValueDataProperty: 200 };
+        const properties1 = { httpStatusCodeValueDataProperty: 400 };
+        const indi = await client.Rlay_Individual.create(clone(properties));
+        const objIndi1 = await client.Rlay_Individual.create(clone(properties1));
+        await indi.assert({
+          httpConnectionClass: true,
+          httpEntityHeaderClass: true,
+          httpStatusCodeValueDataProperty: 599,
+          httpRequestsObjectProperty: objIndi1
+        });
+        await indi.resolve();
+        await objIndi1.resolve();
+        assert.deepEqual(indi.properties, properties);
+        assert.deepEqual(objIndi1.properties, properties1);
+        assert.equal(indi.httpRequestsObjectProperty instanceof client.Rlay_Individual, true);
+        assert.equal(indi.httpConnectionClass, true);
+        assert.equal(indi.httpEntityHeaderClass, true);
+        assert.equal(indi.httpStatusCodeValueDataProperty, 599);
+      });
     });
   });
 

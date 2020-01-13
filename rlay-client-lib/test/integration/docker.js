@@ -6,7 +6,7 @@ const jayson = require("jayson/promise");
 const composeFilePath = path.join(__dirname, "./docker/docker-compose.yml");
 
 const waitForRpc = port => {
-  return promiseRetry(function(retry, number) {
+  return promiseRetry((retry, number) => {
     if (process.env.TEST_STDOUT) {
       console.log("RPC connect attempt number", number);
     }

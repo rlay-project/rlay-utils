@@ -1,4 +1,5 @@
 const Web3 = require('web3');
+const VError = require('verror');
 const { ClientInterface } = require('./interfaces/client');
 const pLimit = require('p-limit');
 const rlay = require('@rlay/web3-rlay');
@@ -110,9 +111,43 @@ class ClientBase extends mix(EntityMetaFactory).with(ClientInterface) {
     });
   }
 
+  async findEntityByCIDs (cids) {
+    return this.readLimit(async () => {
+      return this.web3.rlay.experimentalGetEntities(cids, { backend: this.config.backend });
+    });
+  }
+
   async findEntityByCypher (query) {
     return this.readLimit(async () => {
       return this.web3.rlay.experimentalNeo4jQuery(query, { backend: 'myneo4j' });
+    });
+  }
+
+  async resolveEntity (cid) {
+    return this.readLimit(async () => {
+      const result = await this.web3.rlay.experimentalResolveEntity(cid,
+        { backend: this.config.backend });
+      const resultCidKeys = Object.keys(result);
+      resultCidKeys.forEach(resultCidKey => {
+        result[resultCidKey] = result[resultCidKey].map(payload => {
+          return new Payload(payload, this.getEntityCid.bind(this));
+        });
+      });
+      return result;
+    });
+  }
+
+  async resolveEntities (cids) {
+    return this.readLimit(async () => {
+      const result = await this.web3.rlay.experimentalResolveEntities(cids,
+        { backend: this.config.backend });
+      const resultCidKeys = Object.keys(result);
+      resultCidKeys.forEach(resultCidKey => {
+        result[resultCidKey] = result[resultCidKey].map(payload => {
+          return new Payload(payload, this.getEntityCid.bind(this));
+        });
+      });
+      return result;
     });
   }
 

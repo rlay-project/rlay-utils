@@ -6,7 +6,8 @@ const generateClient = require('./seed/generated/generateRlayClient.js');
 const {
   stubCreateEntity,
   stubFindEntityByCid,
-  stubFindEntityByCypher
+  stubFindEntityByCypher,
+  stubResolveEntity
 } = require('./mocks/client');
 const { ClientBase } = require('../src/client');
 
@@ -33,17 +34,20 @@ const defaultPayload = {
 };
 
 describe('Rlay_Individual', () => {
-  let clientCreateEntityStub, clientFindEntityByCIDStub, clientFindEntityByCypherStub;
+  let clientCreateEntityStub, clientFindEntityByCIDStub;
+  let clientFindEntityByCypherStub, clientResolveEntityStub;
   before(() => {
     Rlay_Individual.client = mockClient;
     let client = Rlay_Individual.client;
     clientCreateEntityStub = stubCreateEntity(client);
     clientFindEntityByCIDStub = stubFindEntityByCid(client);
     clientFindEntityByCypherStub = stubFindEntityByCypher(client);
+    clientResolveEntityStub = stubResolveEntity(client);
   });
   beforeEach(() => clientCreateEntityStub.resetHistory());
   beforeEach(() => clientFindEntityByCIDStub.resetHistory());
   beforeEach(() => clientFindEntityByCypherStub.resetHistory());
+  beforeEach(() => clientResolveEntityStub.resetHistory());
 
   it('should inherit `Entity`', () => {
     assert.equal(testObj.prototype instanceof Entity, true);
@@ -349,9 +353,9 @@ describe('Rlay_Individual', () => {
 
   describe('.resolve', () => {
     it('calls out to the client to resolve the CIDs', async () => {
-      const indi = await testObj.create({httpMethodClass: true});
+      const indi = await testObj.create();
       await indi.resolve();
-      assert.equal(mockClient.findEntityByCypher.callCount, 2);
+      assert.equal(clientResolveEntityStub.callCount, 1);
     });
 
     describe('.fetch', () => {

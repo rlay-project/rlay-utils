@@ -24,7 +24,7 @@
   "devDependencies": {
     "convict": "^5.2.0",
     "delay": "^4.3.0",
-    "jsdoc": "^3.6.3",
+    "jsdoc": "^3.6.4",
     "kafkajs": "^1.11.0",
     "mocha": "^6.2.1",
     "simple-mock": "^0.8.0",

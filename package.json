@@ -59,7 +59,7 @@
     "chai": "^4.2.0",
     "cross-env": "^6.0.0",
     "jayson": "^3.0.2",
-    "mocha": "^6.1.4",
+    "mocha": "^8.2.0",
     "nock": "^11.3.5",
     "prettier": "1.18.2",
     "promise-retry": "^1.1.1",

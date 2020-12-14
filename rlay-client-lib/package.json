@@ -28,7 +28,7 @@
     "kafkajs": "^1.11.0",
     "mocha": "^6.2.1",
     "simple-mock": "^0.8.0",
-    "sinon": "^7.5.0",
+    "sinon": "^9.2.2",
     "toml": "^3.0.0"
   },
   "peerDependencies": {}

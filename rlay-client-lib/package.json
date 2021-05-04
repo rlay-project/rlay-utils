@@ -22,7 +22,7 @@
     "web3": "^1.2.1"
   },
   "devDependencies": {
-    "convict": "^5.2.0",
+    "convict": "^6.1.0",
     "delay": "^4.3.0",
     "jsdoc": "^3.6.3",
     "kafkajs": "^1.11.0",
